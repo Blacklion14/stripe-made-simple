@@ -145,20 +145,20 @@ export default function ProductsPage() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Products</h1>
-          <p className="text-muted-foreground">Create and manage your product catalog</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Products</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Create and manage your product catalog</p>
         </div>
-        <Button onClick={() => setIsCreateOpen(true)}>
+        <Button onClick={() => setIsCreateOpen(true)} className="w-full sm:w-auto">
           <Plus className="mr-2 h-4 w-4" />
           Add Product
         </Button>
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search products..."
@@ -167,14 +167,14 @@ export default function ProductsPage() {
             className="pl-10"
           />
         </div>
-        <Badge variant="secondary">{pagination.total} products</Badge>
+        <Badge variant="secondary" className="w-fit">{pagination.total} products</Badge>
       </div>
 
       {isLoading ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {[...Array(6)].map((_, i) => (
             <Card key={i} className="border-0 shadow-sm">
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-6">
                 <Skeleton className="h-12 w-12 rounded-lg mb-4" />
                 <Skeleton className="h-5 w-32 mb-2" />
                 <Skeleton className="h-4 w-full mb-4" />
@@ -184,23 +184,23 @@ export default function ProductsPage() {
           ))}
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {filteredProducts.map((product) => (
             <Card key={product.id} className="border-0 shadow-sm hover:shadow-md transition-shadow">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-3 rounded-lg ${product.active ? 'bg-primary/10' : 'bg-muted'}`}>
-                      <Package className={`h-5 w-5 ${product.active ? 'text-primary' : 'text-muted-foreground'}`} />
+              <CardHeader className="pb-3 p-4 sm:p-6 sm:pb-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className={`p-2.5 sm:p-3 rounded-lg flex-shrink-0 ${product.active ? 'bg-primary/10' : 'bg-muted'}`}>
+                      <Package className={`h-4 w-4 sm:h-5 sm:w-5 ${product.active ? 'text-primary' : 'text-muted-foreground'}`} />
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground">{product.name}</h3>
-                      <p className="text-xs text-muted-foreground">{product.id}</p>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-semibold text-foreground truncate">{product.name}</h3>
+                      <p className="text-xs text-muted-foreground truncate">{product.id}</p>
                     </div>
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0">
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -220,18 +220,18 @@ export default function ProductsPage() {
                   </DropdownMenu>
                 </div>
               </CardHeader>
-              <CardContent className="pt-0">
+              <CardContent className="pt-0 p-4 sm:p-6 sm:pt-0">
                 <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{product.description}</p>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-xl font-bold text-foreground">
+                    <span className="text-lg sm:text-xl font-bold text-foreground">
                       {formatCurrency(product.price, product.currency)}
                     </span>
                     <span className="text-sm text-muted-foreground">/ month</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline">{product.category}</Badge>
-                    <Badge variant={product.active ? 'default' : 'secondary'}>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge variant="outline" className="text-xs">{product.category}</Badge>
+                    <Badge variant={product.active ? 'default' : 'secondary'} className="text-xs">
                       {product.active ? 'Active' : 'Inactive'}
                     </Badge>
                   </div>
@@ -244,7 +244,7 @@ export default function ProductsPage() {
 
       {/* Create Dialog */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-[90vw] sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Create New Product</DialogTitle>
             <DialogDescription>Add a new product to your catalog.</DialogDescription>
@@ -311,16 +311,16 @@ export default function ProductsPage() {
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
-            <Button onClick={handleCreate}>Create Product</Button>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setIsCreateOpen(false)} className="w-full sm:w-auto">Cancel</Button>
+            <Button onClick={handleCreate} className="w-full sm:w-auto">Create Product</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Edit Dialog */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-[90vw] sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Edit Product</DialogTitle>
             <DialogDescription>Update product information.</DialogDescription>
@@ -385,25 +385,25 @@ export default function ProductsPage() {
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditOpen(false)}>Cancel</Button>
-            <Button onClick={handleEdit}>Save Changes</Button>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setIsEditOpen(false)} className="w-full sm:w-auto">Cancel</Button>
+            <Button onClick={handleEdit} className="w-full sm:w-auto">Save Changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Delete Confirmation */}
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-[90vw] sm:max-w-lg">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Product</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete "{selectedProduct?.name}"? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="w-full sm:w-auto">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90 w-full sm:w-auto">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
