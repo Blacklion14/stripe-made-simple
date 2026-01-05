@@ -1,14 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/store';
+import { fetchCustomers } from '@/store/slices/customersSlice';
+import { fetchProducts } from '@/store/slices/productsSlice';
 import { 
   fetchSubscriptions,
+  createSubscription,
   cancelSubscription,
   pauseSubscription,
   resumeSubscription,
 } from '@/store/slices/subscriptionsSlice';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Table,
   TableBody,
@@ -17,6 +21,21 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,21 +65,34 @@ import {
   CreditCard,
   Calendar,
   Eye,
+  Plus,
 } from 'lucide-react';
 import type { Subscription, SubscriptionStatus } from '@/types';
-import { format } from 'date-fns';
+import { format, addMonths, addYears } from 'date-fns';
+import { toast } from 'sonner';
 
 export default function SubscriptionsPage() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { subscriptions, isLoading, pagination } = useAppSelector((state) => state.subscriptions);
+  const { customers } = useAppSelector((state) => state.customers);
+  const { products } = useAppSelector((state) => state.products);
   
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
   const [actionType, setActionType] = useState<'cancel' | 'pause' | 'resume' | null>(null);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  
+  const [formData, setFormData] = useState({
+    customerId: '',
+    productId: '',
+    interval: 'month' as 'month' | 'year',
+  });
 
   useEffect(() => {
     dispatch(fetchSubscriptions({}));
+    dispatch(fetchCustomers({}));
+    dispatch(fetchProducts({}));
   }, [dispatch]);
 
   const formatCurrency = (amount: number, currency: string = 'USD') => {
@@ -100,17 +132,53 @@ export default function SubscriptionsPage() {
     switch (actionType) {
       case 'cancel':
         await dispatch(cancelSubscription(selectedSubscription.id));
+        toast.success('Subscription canceled');
         break;
       case 'pause':
         await dispatch(pauseSubscription(selectedSubscription.id));
+        toast.success('Subscription paused');
         break;
       case 'resume':
         await dispatch(resumeSubscription(selectedSubscription.id));
+        toast.success('Subscription resumed');
         break;
     }
 
     setSelectedSubscription(null);
     setActionType(null);
+  };
+
+  const handleCreate = async () => {
+    const customer = customers.find(c => c.id === formData.customerId);
+    const product = products.find(p => p.id === formData.productId);
+    
+    if (!customer || !product) {
+      toast.error('Please select a customer and product');
+      return;
+    }
+
+    const now = new Date();
+    const periodEnd = formData.interval === 'month' ? addMonths(now, 1) : addYears(now, 1);
+    const amount = formData.interval === 'year' ? product.price * 12 : product.price;
+
+    await dispatch(createSubscription({
+      customerId: customer.id,
+      customerName: customer.name,
+      customerEmail: customer.email,
+      productId: product.id,
+      productName: product.name,
+      status: 'active',
+      amount,
+      currency: product.currency,
+      interval: formData.interval,
+      currentPeriodStart: now.toISOString(),
+      currentPeriodEnd: periodEnd.toISOString(),
+      updatedAt: now.toISOString(),
+    }));
+    
+    toast.success('Subscription created successfully');
+    setIsCreateOpen(false);
+    setFormData({ customerId: '', productId: '', interval: 'month' });
   };
 
   const openAction = (subscription: Subscription, action: 'cancel' | 'pause' | 'resume') => {
@@ -148,6 +216,11 @@ export default function SubscriptionsPage() {
 
   const dialogContent = getActionDialogContent();
 
+  const selectedProduct = products.find(p => p.id === formData.productId);
+  const estimatedAmount = selectedProduct 
+    ? (formData.interval === 'year' ? selectedProduct.price * 12 : selectedProduct.price)
+    : 0;
+
   // Mobile card view for subscriptions
   const MobileSubscriptionCard = ({ subscription }: { subscription: Subscription }) => (
     <div 
@@ -184,9 +257,15 @@ export default function SubscriptionsPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-foreground">Subscriptions</h1>
-        <p className="text-sm sm:text-base text-muted-foreground">Manage recurring billing for your customers</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Subscriptions</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Manage recurring billing for your customers</p>
+        </div>
+        <Button onClick={() => setIsCreateOpen(true)} className="w-full sm:w-auto">
+          <Plus className="mr-2 h-4 w-4" />
+          New Subscription
+        </Button>
       </div>
 
       <Card className="border-0 shadow-sm">
@@ -341,6 +420,104 @@ export default function SubscriptionsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Create Subscription Dialog */}
+      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <DialogContent className="max-w-[90vw] sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Create New Subscription</DialogTitle>
+            <DialogDescription>Set up a recurring subscription for a customer.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="customer">Customer</Label>
+              <Select
+                value={formData.customerId}
+                onValueChange={(value) => setFormData({ ...formData, customerId: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a customer" />
+                </SelectTrigger>
+                <SelectContent>
+                  {customers.map((customer) => (
+                    <SelectItem key={customer.id} value={customer.id}>
+                      <div className="flex flex-col">
+                        <span>{customer.name}</span>
+                        <span className="text-xs text-muted-foreground">{customer.email}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="product">Product</Label>
+              <Select
+                value={formData.productId}
+                onValueChange={(value) => setFormData({ ...formData, productId: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a product" />
+                </SelectTrigger>
+                <SelectContent>
+                  {products.filter(p => p.active).map((product) => (
+                    <SelectItem key={product.id} value={product.id}>
+                      <div className="flex items-center justify-between gap-4 w-full">
+                        <span>{product.name}</span>
+                        <span className="text-muted-foreground">{formatCurrency(product.price, product.currency)}/mo</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="interval">Billing Interval</Label>
+              <Select
+                value={formData.interval}
+                onValueChange={(value: 'month' | 'year') => setFormData({ ...formData, interval: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="month">Monthly</SelectItem>
+                  <SelectItem value="year">Yearly (12 months)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {selectedProduct && (
+              <div className="p-4 rounded-lg bg-muted/50 space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Product</span>
+                  <span className="font-medium">{selectedProduct.name}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Billing</span>
+                  <span className="font-medium">{formData.interval === 'month' ? 'Monthly' : 'Yearly'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Amount</span>
+                  <span className="text-lg font-bold">
+                    {formatCurrency(estimatedAmount, selectedProduct.currency)}/{formData.interval}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setIsCreateOpen(false)} className="w-full sm:w-auto">Cancel</Button>
+            <Button 
+              onClick={handleCreate} 
+              disabled={!formData.customerId || !formData.productId}
+              className="w-full sm:w-auto"
+            >
+              Create Subscription
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Action Confirmation Dialog */}
       <AlertDialog open={!!actionType} onOpenChange={() => setActionType(null)}>
