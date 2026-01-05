@@ -11,7 +11,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -62,17 +61,24 @@ export function AppSidebar() {
       .slice(0, 2);
   };
 
+  const isActiveRoute = (url: string) => {
+    if (url === '/dashboard') {
+      return location.pathname === '/dashboard';
+    }
+    return location.pathname.startsWith(url);
+  };
+
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
       <SidebarHeader className="border-b border-border p-4">
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary text-primary-foreground">
+          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary text-primary-foreground flex-shrink-0">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
           </div>
           {!collapsed && (
-            <span className="font-semibold text-foreground">PayFlow</span>
+            <span className="font-semibold text-foreground truncate">PayFlow</span>
           )}
         </div>
       </SidebarHeader>
@@ -82,7 +88,7 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => {
-                const isActive = location.pathname === item.url;
+                const isActive = isActiveRoute(item.url);
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
@@ -99,7 +105,7 @@ export function AppSidebar() {
                         }`}
                       >
                         <item.icon className="h-5 w-5 flex-shrink-0" />
-                        {!collapsed && <span>{item.title}</span>}
+                        {!collapsed && <span className="truncate">{item.title}</span>}
                       </RouterNavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -113,13 +119,32 @@ export function AppSidebar() {
       <SidebarFooter className="border-t border-border p-2">
         <SidebarMenu>
           <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={location.pathname === '/settings'}
+              tooltip="Settings"
+            >
+              <RouterNavLink
+                to="/settings"
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                  location.pathname === '/settings'
+                    ? 'bg-primary/10 text-primary font-medium'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                }`}
+              >
+                <Settings className="h-5 w-5 flex-shrink-0" />
+                {!collapsed && <span className="truncate">Settings</span>}
+              </RouterNavLink>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton
                   size="lg"
                   className="w-full justify-start gap-3 px-3 py-2 hover:bg-muted rounded-lg"
                 >
-                  <Avatar className="h-8 w-8">
+                  <Avatar className="h-8 w-8 flex-shrink-0">
                     <AvatarImage src={user?.avatar} />
                     <AvatarFallback className="bg-primary/10 text-primary text-sm">
                       {user?.name ? getInitials(user.name) : 'U'}
@@ -135,7 +160,7 @@ export function AppSidebar() {
                           {user?.email || 'user@example.com'}
                         </span>
                       </div>
-                      <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                      <ChevronUp className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                     </>
                   )}
                 </SidebarMenuButton>
@@ -148,9 +173,11 @@ export function AppSidebar() {
               >
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <Settings className="mr-2 h-4 w-4" />
-                  Settings
+                <DropdownMenuItem asChild>
+                  <RouterNavLink to="/settings">
+                    <Settings className="mr-2 h-4 w-4" />
+                    Settings
+                  </RouterNavLink>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">

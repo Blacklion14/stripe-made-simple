@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { 
   fetchSubscriptions,
@@ -44,12 +45,14 @@ import {
   XCircle,
   CreditCard,
   Calendar,
+  Eye,
 } from 'lucide-react';
 import type { Subscription, SubscriptionStatus } from '@/types';
 import { format } from 'date-fns';
 
 export default function SubscriptionsPage() {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const { subscriptions, isLoading, pagination } = useAppSelector((state) => state.subscriptions);
   
   const [searchQuery, setSearchQuery] = useState('');
@@ -145,17 +148,51 @@ export default function SubscriptionsPage() {
 
   const dialogContent = getActionDialogContent();
 
+  // Mobile card view for subscriptions
+  const MobileSubscriptionCard = ({ subscription }: { subscription: Subscription }) => (
+    <div 
+      className="p-4 border-b last:border-b-0 cursor-pointer hover:bg-muted/50 transition-colors"
+      onClick={() => navigate(`/subscriptions/${subscription.id}`)}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-medium flex-shrink-0">
+            {subscription.customerName.split(' ').map(n => n[0]).join('').slice(0, 2)}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="font-medium text-foreground truncate">{subscription.customerName}</p>
+            <p className="text-sm text-muted-foreground truncate">{subscription.productName}</p>
+          </div>
+        </div>
+        <Badge variant="outline" className={`${getStatusColor(subscription.status)} flex-shrink-0`}>
+          {subscription.status.replace('_', ' ')}
+        </Badge>
+      </div>
+      <div className="mt-3 flex items-center justify-between text-sm">
+        <span className="font-medium">
+          {formatCurrency(subscription.amount, subscription.currency)}/{subscription.interval}
+        </span>
+        <div className="flex items-center gap-1 text-muted-foreground">
+          <Calendar className="h-3 w-3" />
+          <span className="text-xs">
+            {format(new Date(subscription.currentPeriodEnd), 'MMM d')}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Subscriptions</h1>
-        <p className="text-muted-foreground">Manage recurring billing for your customers</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-foreground">Subscriptions</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">Manage recurring billing for your customers</p>
       </div>
 
       <Card className="border-0 shadow-sm">
         <CardHeader className="pb-4">
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1 max-w-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search subscriptions..."
@@ -164,7 +201,7 @@ export default function SubscriptionsPage() {
                 className="pl-10"
               />
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Badge variant="outline" className="bg-success/10 text-success border-success/20">
                 {subscriptions.filter(s => s.status === 'active').length} active
               </Badge>
@@ -172,9 +209,9 @@ export default function SubscriptionsPage() {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0 sm:p-6 sm:pt-0">
           {isLoading ? (
-            <div className="space-y-4">
+            <div className="space-y-4 p-4 sm:p-0">
               {[...Array(5)].map((_, i) => (
                 <div key={i} className="flex items-center gap-4">
                   <Skeleton className="h-10 w-10 rounded-full" />
@@ -188,112 +225,135 @@ export default function SubscriptionsPage() {
               ))}
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Product</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Current Period</TableHead>
-                  <TableHead className="w-12"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Mobile View */}
+              <div className="sm:hidden">
                 {filteredSubscriptions.map((subscription) => (
-                  <TableRow key={subscription.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-medium">
-                          {subscription.customerName.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                        </div>
-                        <div>
-                          <p className="font-medium text-foreground">{subscription.customerName}</p>
-                          <p className="text-sm text-muted-foreground">{subscription.customerEmail}</p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <CreditCard className="h-4 w-4 text-muted-foreground" />
-                        <span>{subscription.productName}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={getStatusColor(subscription.status)}>
-                        {subscription.status.replace('_', ' ')}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-medium">
-                        {formatCurrency(subscription.amount, subscription.currency)}
-                      </span>
-                      <span className="text-muted-foreground">/{subscription.interval}</span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Calendar className="h-3 w-3" />
-                        {format(new Date(subscription.currentPeriodStart), 'MMM d')} - {format(new Date(subscription.currentPeriodEnd), 'MMM d, yyyy')}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          {subscription.status === 'active' && (
-                            <>
-                              <DropdownMenuItem onClick={() => openAction(subscription, 'pause')}>
-                                <Pause className="mr-2 h-4 w-4" />
-                                Pause
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                            </>
-                          )}
-                          {subscription.status === 'paused' && (
-                            <>
-                              <DropdownMenuItem onClick={() => openAction(subscription, 'resume')}>
-                                <Play className="mr-2 h-4 w-4" />
-                                Resume
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                            </>
-                          )}
-                          {subscription.status !== 'canceled' && (
-                            <DropdownMenuItem 
-                              onClick={() => openAction(subscription, 'cancel')}
-                              className="text-destructive focus:text-destructive"
-                            >
-                              <XCircle className="mr-2 h-4 w-4" />
-                              Cancel
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
+                  <MobileSubscriptionCard key={subscription.id} subscription={subscription} />
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+
+              {/* Desktop View */}
+              <div className="hidden sm:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Product</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead className="hidden lg:table-cell">Current Period</TableHead>
+                      <TableHead className="w-12"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredSubscriptions.map((subscription) => (
+                      <TableRow 
+                        key={subscription.id} 
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => navigate(`/subscriptions/${subscription.id}`)}
+                      >
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-medium flex-shrink-0">
+                              {subscription.customerName.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-medium text-foreground truncate">{subscription.customerName}</p>
+                              <p className="text-sm text-muted-foreground truncate max-w-[200px]">{subscription.customerEmail}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <CreditCard className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <span className="truncate max-w-[150px]">{subscription.productName}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={getStatusColor(subscription.status)}>
+                            {subscription.status.replace('_', ' ')}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-medium whitespace-nowrap">
+                            {formatCurrency(subscription.amount, subscription.currency)}
+                          </span>
+                          <span className="text-muted-foreground">/{subscription.interval}</span>
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground whitespace-nowrap">
+                            <Calendar className="h-3 w-3 flex-shrink-0" />
+                            {format(new Date(subscription.currentPeriodStart), 'MMM d')} - {format(new Date(subscription.currentPeriodEnd), 'MMM d, yyyy')}
+                          </div>
+                        </TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => navigate(`/subscriptions/${subscription.id}`)}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Details
+                              </DropdownMenuItem>
+                              {subscription.status === 'active' && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => openAction(subscription, 'pause')}>
+                                    <Pause className="mr-2 h-4 w-4" />
+                                    Pause
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              {subscription.status === 'paused' && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => openAction(subscription, 'resume')}>
+                                    <Play className="mr-2 h-4 w-4" />
+                                    Resume
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              {subscription.status !== 'canceled' && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem 
+                                    onClick={() => openAction(subscription, 'cancel')}
+                                    className="text-destructive focus:text-destructive"
+                                  >
+                                    <XCircle className="mr-2 h-4 w-4" />
+                                    Cancel
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
 
       {/* Action Confirmation Dialog */}
       <AlertDialog open={!!actionType} onOpenChange={() => setActionType(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-[90vw] sm:max-w-lg">
           <AlertDialogHeader>
             <AlertDialogTitle>{dialogContent.title}</AlertDialogTitle>
             <AlertDialogDescription>{dialogContent.description}</AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="w-full sm:w-auto">Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleAction}
-              className={dialogContent.variant === 'destructive' ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}
+              className={`w-full sm:w-auto ${dialogContent.variant === 'destructive' ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}`}
             >
               {dialogContent.action}
             </AlertDialogAction>

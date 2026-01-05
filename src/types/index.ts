@@ -57,6 +57,8 @@ export interface Subscription {
   currentPeriodStart: string;
   currentPeriodEnd: string;
   createdAt: string;
+  updatedAt: string;
+  canceledAt?: string;
 }
 
 // Invoice Types

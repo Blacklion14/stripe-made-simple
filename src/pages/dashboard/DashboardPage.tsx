@@ -9,8 +9,6 @@ import {
   Users, 
   CreditCard, 
   FileText, 
-  TrendingUp, 
-  TrendingDown,
   ArrowUpRight,
   ArrowDownRight,
 } from 'lucide-react';
@@ -96,17 +94,17 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground">Welcome back! Here's an overview of your business.</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-foreground">Dashboard</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">Welcome back! Here's an overview of your business.</p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
         {statCards.map((stat) => (
           <Card key={stat.title} className="border-0 shadow-sm">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
               {isLoading ? (
                 <div className="space-y-3">
                   <Skeleton className="h-4 w-24" />
@@ -116,29 +114,29 @@ export default function DashboardPage() {
               ) : (
                 <>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">{stat.title}</span>
-                    <div className={`p-2 rounded-lg ${stat.bgColor}`}>
-                      <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                    <span className="text-xs sm:text-sm text-muted-foreground truncate pr-2">{stat.title}</span>
+                    <div className={`p-1.5 sm:p-2 rounded-lg ${stat.bgColor} flex-shrink-0`}>
+                      <stat.icon className={`h-3 w-3 sm:h-4 sm:w-4 ${stat.color}`} />
                     </div>
                   </div>
-                  <div className="mt-3">
-                    <span className="text-2xl font-bold text-foreground">
+                  <div className="mt-2 sm:mt-3">
+                    <span className="text-lg sm:text-2xl font-bold text-foreground">
                       {stat.format === 'currency' ? formatCurrency(stat.value) : stat.value}
                     </span>
                   </div>
-                  <div className="mt-2 flex items-center gap-1 text-sm">
+                  <div className="mt-1 sm:mt-2 flex items-center gap-1 text-xs sm:text-sm">
                     {stat.change >= 0 ? (
                       <>
-                        <ArrowUpRight className="h-4 w-4 text-success" />
+                        <ArrowUpRight className="h-3 w-3 sm:h-4 sm:w-4 text-success" />
                         <span className="text-success font-medium">+{stat.change}%</span>
                       </>
                     ) : (
                       <>
-                        <ArrowDownRight className="h-4 w-4 text-destructive" />
+                        <ArrowDownRight className="h-3 w-3 sm:h-4 sm:w-4 text-destructive" />
                         <span className="text-destructive font-medium">{stat.change}%</span>
                       </>
                     )}
-                    <span className="text-muted-foreground">from last month</span>
+                    <span className="text-muted-foreground hidden sm:inline">from last month</span>
                   </div>
                 </>
               )}
@@ -148,18 +146,18 @@ export default function DashboardPage() {
       </div>
 
       {/* Charts and Tables */}
-      <div className="grid gap-6 lg:grid-cols-7">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-7">
         {/* Revenue Chart */}
         <Card className="lg:col-span-4 border-0 shadow-sm">
-          <CardHeader>
-            <CardTitle>Revenue Overview</CardTitle>
-            <CardDescription>Monthly revenue for the past year</CardDescription>
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-base sm:text-lg">Revenue Overview</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Monthly revenue for the past year</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-2 sm:p-6 sm:pt-0">
             {isLoading ? (
-              <Skeleton className="h-[300px] w-full" />
+              <Skeleton className="h-[200px] sm:h-[300px] w-full" />
             ) : (
-              <div className="h-[300px]">
+              <div className="h-[200px] sm:h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={revenueChart}>
                     <defs>
@@ -169,13 +167,24 @@ export default function DashboardPage() {
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis dataKey="name" className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
-                    <YAxis className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} tickFormatter={(value) => `$${value / 1000}k`} />
+                    <XAxis 
+                      dataKey="name" 
+                      className="text-xs" 
+                      tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} 
+                      interval="preserveStartEnd"
+                    />
+                    <YAxis 
+                      className="text-xs" 
+                      tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} 
+                      tickFormatter={(value) => `$${value / 1000}k`}
+                      width={45}
+                    />
                     <Tooltip
                       contentStyle={{
                         backgroundColor: 'hsl(var(--card))',
                         border: '1px solid hsl(var(--border))',
                         borderRadius: '8px',
+                        fontSize: '12px',
                       }}
                       formatter={(value: number) => [formatCurrency(value), 'Revenue']}
                     />
@@ -196,11 +205,11 @@ export default function DashboardPage() {
 
         {/* Recent Invoices */}
         <Card className="lg:col-span-3 border-0 shadow-sm">
-          <CardHeader>
-            <CardTitle>Recent Invoices</CardTitle>
-            <CardDescription>Latest invoice activity</CardDescription>
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-base sm:text-lg">Recent Invoices</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Latest invoice activity</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-6 sm:pt-0">
             {isLoading ? (
               <div className="space-y-4">
                 {[...Array(5)].map((_, i) => (
@@ -214,16 +223,16 @@ export default function DashboardPage() {
                 ))}
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {recentInvoices.map((invoice) => (
-                  <div key={invoice.id} className="flex items-center justify-between py-2">
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-foreground">{invoice.customerName}</p>
-                      <p className="text-xs text-muted-foreground">{invoice.id}</p>
+                  <div key={invoice.id} className="flex items-center justify-between py-2 gap-2">
+                    <div className="space-y-0.5 sm:space-y-1 min-w-0 flex-1">
+                      <p className="text-sm font-medium text-foreground truncate">{invoice.customerName}</p>
+                      <p className="text-xs text-muted-foreground truncate">{invoice.id}</p>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium">{formatCurrency(invoice.amount)}</span>
-                      <Badge variant="outline" className={getStatusColor(invoice.status)}>
+                    <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                      <span className="text-xs sm:text-sm font-medium">{formatCurrency(invoice.amount)}</span>
+                      <Badge variant="outline" className={`${getStatusColor(invoice.status)} text-xs`}>
                         {invoice.status}
                       </Badge>
                     </div>
@@ -237,11 +246,11 @@ export default function DashboardPage() {
 
       {/* Recent Customers */}
       <Card className="border-0 shadow-sm">
-        <CardHeader>
-          <CardTitle>Recent Customers</CardTitle>
-          <CardDescription>New customers added this month</CardDescription>
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-base sm:text-lg">Recent Customers</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">New customers added this month</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6 sm:pt-0">
           {isLoading ? (
             <div className="space-y-4">
               {[...Array(5)].map((_, i) => (
@@ -256,19 +265,19 @@ export default function DashboardPage() {
               ))}
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {recentCustomers.map((customer) => (
-                <div key={customer.id} className="flex items-center gap-4 py-2">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-medium">
+                <div key={customer.id} className="flex items-center gap-3 sm:gap-4 py-2">
+                  <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-medium text-sm flex-shrink-0">
                     {customer.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">{customer.name}</p>
                     <p className="text-xs text-muted-foreground truncate">{customer.email}</p>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right flex-shrink-0">
                     <p className="text-sm font-medium">{formatCurrency(customer.totalSpent)}</p>
-                    <p className="text-xs text-muted-foreground">{customer.subscriptions} subscriptions</p>
+                    <p className="text-xs text-muted-foreground">{customer.subscriptions} subs</p>
                   </div>
                 </div>
               ))}
