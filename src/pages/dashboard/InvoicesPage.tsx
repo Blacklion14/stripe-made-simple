@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { 
   fetchInvoices,
@@ -55,6 +56,10 @@ import {
   Eye,
   FileText,
   Calendar,
+  CreditCard,
+  Package,
+  User,
+  ExternalLink,
 } from 'lucide-react';
 import type { Invoice, InvoiceStatus } from '@/types';
 import { format } from 'date-fns';
@@ -100,7 +105,8 @@ export default function InvoicesPage() {
   const filteredInvoices = invoices.filter((invoice) =>
     invoice.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     invoice.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    invoice.customerEmail.toLowerCase().includes(searchQuery.toLowerCase())
+    invoice.customerEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    invoice.productName?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleAction = async () => {
@@ -187,7 +193,13 @@ export default function InvoicesPage() {
           {invoice.status}
         </Badge>
       </div>
-      <div className="mt-3 flex items-center justify-between text-sm">
+      {invoice.productName && (
+        <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+          <Package className="h-3 w-3" />
+          <span className="truncate">{invoice.productName}</span>
+        </div>
+      )}
+      <div className="mt-2 flex items-center justify-between text-sm">
         <span className="font-medium">{formatCurrency(invoice.amount, invoice.currency)}</span>
         <div className="flex items-center gap-1 text-muted-foreground">
           <Calendar className="h-3 w-3" />
@@ -258,9 +270,10 @@ export default function InvoicesPage() {
                     <TableRow>
                       <TableHead>Invoice</TableHead>
                       <TableHead className="hidden md:table-cell">Customer</TableHead>
+                      <TableHead className="hidden lg:table-cell">Product / Subscription</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Amount</TableHead>
-                      <TableHead className="hidden lg:table-cell">Due Date</TableHead>
+                      <TableHead className="hidden xl:table-cell">Due Date</TableHead>
                       <TableHead className="w-12"></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -286,6 +299,27 @@ export default function InvoicesPage() {
                             <p className="text-sm text-muted-foreground truncate max-w-[200px]">{invoice.customerEmail}</p>
                           </div>
                         </TableCell>
+                        <TableCell className="hidden lg:table-cell">
+                          <div className="space-y-1">
+                            {invoice.productName && (
+                              <div className="flex items-center gap-2 text-sm">
+                                <Package className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                                <span className="truncate max-w-[150px]">{invoice.productName}</span>
+                              </div>
+                            )}
+                            {invoice.subscriptionId && (
+                              <Link 
+                                to={`/subscriptions/${invoice.subscriptionId}`}
+                                className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <CreditCard className="h-3 w-3 flex-shrink-0" />
+                                <span className="truncate">{invoice.subscriptionId}</span>
+                                <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                              </Link>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell>
                           <Badge variant="outline" className={getStatusColor(invoice.status)}>
                             {invoice.status}
@@ -294,7 +328,7 @@ export default function InvoicesPage() {
                         <TableCell className="font-medium whitespace-nowrap">
                           {formatCurrency(invoice.amount, invoice.currency)}
                         </TableCell>
-                        <TableCell className="hidden lg:table-cell">
+                        <TableCell className="hidden xl:table-cell">
                           <div className="flex items-center gap-2 text-sm text-muted-foreground whitespace-nowrap">
                             <Calendar className="h-3 w-3 flex-shrink-0" />
                             {format(new Date(invoice.dueDate), 'MMM d, yyyy')}
@@ -378,6 +412,44 @@ export default function InvoicesPage() {
                   {viewInvoice.status}
                 </Badge>
               </div>
+              
+              {/* Linked entities */}
+              {(viewInvoice.productName || viewInvoice.subscriptionId) && (
+                <>
+                  <Separator />
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">Linked To</p>
+                    <div className="space-y-2">
+                      {viewInvoice.productName && (
+                        <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
+                          <Package className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">Product: {viewInvoice.productName}</span>
+                        </div>
+                      )}
+                      {viewInvoice.subscriptionId && (
+                        <Link 
+                          to={`/subscriptions/${viewInvoice.subscriptionId}`}
+                          className="flex items-center gap-2 p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                          onClick={() => setViewInvoice(null)}
+                        >
+                          <CreditCard className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm flex-1">Subscription: {viewInvoice.subscriptionName || viewInvoice.subscriptionId}</span>
+                          <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                        </Link>
+                      )}
+                      <Link 
+                        to={`/customers`}
+                        className="flex items-center gap-2 p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                        onClick={() => setViewInvoice(null)}
+                      >
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm flex-1">Customer: {viewInvoice.customerName}</span>
+                        <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                      </Link>
+                    </div>
+                  </div>
+                </>
+              )}
               
               <Separator />
               
