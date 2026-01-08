@@ -1,25 +1,31 @@
-import { useState } from 'react';
-import { useTheme } from 'next-themes';
-import { useAppSelector, useAppDispatch } from '@/store';
-import { updateProfile } from '@/store/slices/authSlice';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useState } from "react";
+import { useTheme } from "next-themes";
+import { useAppSelector, useAppDispatch } from "@/store";
+import { updateProfile } from "@/store/slices/authSlice";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { 
-  User, 
-  Bell, 
-  Shield, 
+} from "@/components/ui/select";
+import {
+  User,
+  Bell,
+  Shield,
   Palette,
   Moon,
   Sun,
@@ -27,8 +33,8 @@ import {
   Save,
   Mail,
   Key,
-} from 'lucide-react';
-import { toast } from 'sonner';
+} from "lucide-react";
+import { toast } from "sonner";
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -36,8 +42,9 @@ export default function SettingsPage() {
   const { user } = useAppSelector((state) => state.auth);
 
   const [profileData, setProfileData] = useState({
-    name: user?.name || '',
-    email: user?.email || '',
+    name: user?.name || "",
+    email: user?.email || "",
+    companyName: user?.companyName || "",
   });
 
   const [notifications, setNotifications] = useState({
@@ -49,14 +56,14 @@ export default function SettingsPage() {
 
   const handleSaveProfile = () => {
     dispatch(updateProfile(profileData));
-    toast.success('Profile updated successfully');
+    toast.success("Profile updated successfully");
   };
 
   const getInitials = (name: string) => {
     return name
-      .split(' ')
+      .split(" ")
       .map((n) => n[0])
-      .join('')
+      .join("")
       .toUpperCase()
       .slice(0, 2);
   };
@@ -75,7 +82,9 @@ export default function SettingsPage() {
             <User className="h-5 w-5 text-muted-foreground" />
             <div>
               <CardTitle className="text-lg">Profile</CardTitle>
-              <CardDescription>Update your personal information</CardDescription>
+              <CardDescription>
+                Update your personal information
+              </CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -84,13 +93,17 @@ export default function SettingsPage() {
             <Avatar className="h-20 w-20">
               <AvatarImage src={user?.avatar} />
               <AvatarFallback className="bg-primary/10 text-primary text-xl">
-                {user?.name ? getInitials(user.name) : 'U'}
+                {user?.name ? getInitials(user.name) : "U"}
               </AvatarFallback>
             </Avatar>
             <div className="space-y-1">
               <p className="text-sm font-medium">Profile Picture</p>
-              <p className="text-xs text-muted-foreground">JPG, GIF or PNG. Max size 2MB.</p>
-              <Button variant="outline" size="sm">Change Avatar</Button>
+              <p className="text-xs text-muted-foreground">
+                JPG, GIF or PNG. Max size 2MB.
+              </p>
+              <Button variant="outline" size="sm">
+                Change Avatar
+              </Button>
             </div>
           </div>
 
@@ -102,7 +115,9 @@ export default function SettingsPage() {
               <Input
                 id="name"
                 value={profileData.name}
-                onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+                onChange={(e) =>
+                  setProfileData({ ...profileData, name: e.target.value })
+                }
                 placeholder="Your name"
               />
             </div>
@@ -112,7 +127,60 @@ export default function SettingsPage() {
                 id="email"
                 type="email"
                 value={profileData.email}
-                onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                onChange={(e) =>
+                  setProfileData({ ...profileData, email: e.target.value })
+                }
+                placeholder="you@example.com"
+              />
+            </div>
+          </div>
+          <Label className="mt-2">Company Details</Label>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Input
+                id="companyName"
+                value={profileData.companyName}
+                onChange={(e) =>
+                  setProfileData({
+                    ...profileData,
+                    companyName: e.target.value,
+                  })
+                }
+                placeholder="Your name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Input
+                id="email"
+                type="email"
+                value={profileData.email}
+                onChange={(e) =>
+                  setProfileData({ ...profileData, email: e.target.value })
+                }
+                placeholder="you@example.com"
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Input
+                id="name"
+                value={profileData.name}
+                onChange={(e) =>
+                  setProfileData({ ...profileData, name: e.target.value })
+                }
+                placeholder="Your name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Input
+                id="email"
+                type="email"
+                value={profileData.email}
+                onChange={(e) =>
+                  setProfileData({ ...profileData, email: e.target.value })
+                }
                 placeholder="you@example.com"
               />
             </div>
@@ -140,7 +208,9 @@ export default function SettingsPage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-0.5">
               <Label>Theme</Label>
-              <p className="text-sm text-muted-foreground">Select your preferred theme</p>
+              <p className="text-sm text-muted-foreground">
+                Select your preferred theme
+              </p>
             </div>
             <Select value={theme} onValueChange={setTheme}>
               <SelectTrigger className="w-full sm:w-40">
@@ -178,7 +248,9 @@ export default function SettingsPage() {
             <Bell className="h-5 w-5 text-muted-foreground" />
             <div>
               <CardTitle className="text-lg">Notifications</CardTitle>
-              <CardDescription>Configure how you receive updates</CardDescription>
+              <CardDescription>
+                Configure how you receive updates
+              </CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -190,11 +262,15 @@ export default function SettingsPage() {
                   <Mail className="h-4 w-4 text-muted-foreground" />
                   Invoice emails
                 </Label>
-                <p className="text-sm text-muted-foreground">Receive emails when invoices are created</p>
+                <p className="text-sm text-muted-foreground">
+                  Receive emails when invoices are created
+                </p>
               </div>
               <Switch
                 checked={notifications.emailInvoices}
-                onCheckedChange={(checked) => setNotifications({ ...notifications, emailInvoices: checked })}
+                onCheckedChange={(checked) =>
+                  setNotifications({ ...notifications, emailInvoices: checked })
+                }
               />
             </div>
             <Separator />
@@ -204,11 +280,15 @@ export default function SettingsPage() {
                   <Mail className="h-4 w-4 text-muted-foreground" />
                   Payment confirmations
                 </Label>
-                <p className="text-sm text-muted-foreground">Receive emails when payments are processed</p>
+                <p className="text-sm text-muted-foreground">
+                  Receive emails when payments are processed
+                </p>
               </div>
               <Switch
                 checked={notifications.emailPayments}
-                onCheckedChange={(checked) => setNotifications({ ...notifications, emailPayments: checked })}
+                onCheckedChange={(checked) =>
+                  setNotifications({ ...notifications, emailPayments: checked })
+                }
               />
             </div>
             <Separator />
@@ -218,11 +298,18 @@ export default function SettingsPage() {
                   <Mail className="h-4 w-4 text-muted-foreground" />
                   Subscription updates
                 </Label>
-                <p className="text-sm text-muted-foreground">Receive emails for subscription changes</p>
+                <p className="text-sm text-muted-foreground">
+                  Receive emails for subscription changes
+                </p>
               </div>
               <Switch
                 checked={notifications.emailSubscriptions}
-                onCheckedChange={(checked) => setNotifications({ ...notifications, emailSubscriptions: checked })}
+                onCheckedChange={(checked) =>
+                  setNotifications({
+                    ...notifications,
+                    emailSubscriptions: checked,
+                  })
+                }
               />
             </div>
             <Separator />
@@ -232,11 +319,18 @@ export default function SettingsPage() {
                   <Bell className="h-4 w-4 text-muted-foreground" />
                   Browser notifications
                 </Label>
-                <p className="text-sm text-muted-foreground">Show desktop notifications</p>
+                <p className="text-sm text-muted-foreground">
+                  Show desktop notifications
+                </p>
               </div>
               <Switch
                 checked={notifications.browserNotifications}
-                onCheckedChange={(checked) => setNotifications({ ...notifications, browserNotifications: checked })}
+                onCheckedChange={(checked) =>
+                  setNotifications({
+                    ...notifications,
+                    browserNotifications: checked,
+                  })
+                }
               />
             </div>
           </div>
@@ -261,9 +355,13 @@ export default function SettingsPage() {
                 <Key className="h-4 w-4 text-muted-foreground" />
                 Password
               </Label>
-              <p className="text-sm text-muted-foreground">Change your account password</p>
+              <p className="text-sm text-muted-foreground">
+                Change your account password
+              </p>
             </div>
-            <Button variant="outline" className="w-full sm:w-auto">Change Password</Button>
+            <Button variant="outline" className="w-full sm:w-auto">
+              Change Password
+            </Button>
           </div>
           <Separator />
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -272,9 +370,13 @@ export default function SettingsPage() {
                 <Shield className="h-4 w-4 text-muted-foreground" />
                 Two-factor authentication
               </Label>
-              <p className="text-sm text-muted-foreground">Add an extra layer of security</p>
+              <p className="text-sm text-muted-foreground">
+                Add an extra layer of security
+              </p>
             </div>
-            <Button variant="outline" className="w-full sm:w-auto">Enable 2FA</Button>
+            <Button variant="outline" className="w-full sm:w-auto">
+              Enable 2FA
+            </Button>
           </div>
         </CardContent>
       </Card>
