@@ -16,6 +16,7 @@ import type {
   ChartData,
   ApiResponse,
   PaginatedResponse,
+  CreateCustomerRequest,
 } from "@/types";
 
 // =============================================================================
@@ -44,51 +45,56 @@ const mockUsers: User[] = [
 
 const mockCustomers: Customer[] = [
   {
-    id: "cus_1",
+    workspaceId: "ws_main",
+    clientId: "cus_1",
     name: "Acme Corp",
     email: "billing@acme.com",
-    phone: "+1 555-0100",
-    address: "123 Business Ave, NY",
+    contactNumber: "+1 555-0100",
+    billingAddress: "123 Business Ave, NY",
     createdAt: "2024-01-10T08:00:00Z",
     totalSpent: 15000,
     subscriptions: 2,
   },
   {
-    id: "cus_2",
+    workspaceId: "ws_main",
+    clientId: "cus_2",
     name: "TechStart Inc",
     email: "finance@techstart.io",
-    phone: "+1 555-0101",
-    address: "456 Tech Blvd, SF",
+    contactNumber: "+1 555-0101",
+    billingAddress: "456 Tech Blvd, SF",
     createdAt: "2024-01-12T09:30:00Z",
     totalSpent: 8500,
     subscriptions: 1,
   },
   {
-    id: "cus_3",
+    workspaceId: "ws_main",
+    clientId: "cus_3",
     name: "Global Solutions",
     email: "accounts@globalsol.com",
-    phone: "+1 555-0102",
-    address: "789 Enterprise St, LA",
+    contactNumber: "+1 555-0102",
+    billingAddress: "789 Enterprise St, LA",
     createdAt: "2024-01-15T14:00:00Z",
     totalSpent: 25000,
     subscriptions: 3,
   },
   {
-    id: "cus_4",
+    workspaceId: "ws_main",
+    clientId: "cus_4",
     name: "StartupXYZ",
     email: "hello@startupxyz.com",
-    phone: "+1 555-0103",
-    address: "321 Innovation Way, Austin",
+    contactNumber: "+1 555-0103",
+    billingAddress: "321 Innovation Way, Austin",
     createdAt: "2024-02-01T11:00:00Z",
     totalSpent: 3200,
     subscriptions: 1,
   },
   {
-    id: "cus_5",
+    workspaceId: "ws_main",
+    clientId: "cus_5",
     name: "Enterprise Ltd",
     email: "billing@enterprise.co",
-    phone: "+1 555-0104",
-    address: "555 Corporate Plaza, Chicago",
+    contactNumber: "+1 555-0104",
+    billingAddress: "555 Corporate Plaza, Chicago",
     createdAt: "2024-02-10T16:00:00Z",
     totalSpent: 45000,
     subscriptions: 5,
@@ -558,15 +564,28 @@ export const customersApi = {
     page = 1,
     pageSize = 10
   ): Promise<PaginatedResponse<Customer>> => {
-    await delay(MOCK_DELAY);
-    const start = (page - 1) * pageSize;
-    const paginatedData = mockCustomers.slice(start, start + pageSize);
+  
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/workspaces/ws_main/clients?page=${page - 1}&size=${pageSize}`,
+      {
+        method: "GET",
+        credentials: "include", // 🔥 required for cookies/JWT
+      }
+    );
+  
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Fetch clients failed (${res.status}): ${err}`);
+    }
+  
+    const data = await res.json();
+  
     return {
-      data: paginatedData,
-      total: mockCustomers.length,
-      page,
-      pageSize,
-      totalPages: Math.ceil(mockCustomers.length / pageSize),
+      data: data.content,          // list of customers
+      total: data.totalElements,   // total records
+      page: data.number + 1,       // backend is 0-based
+      pageSize: data.size,
+      totalPages: data.totalPages,
     };
   },
 
@@ -575,7 +594,7 @@ export const customersApi = {
    */
   getById: async (id: string): Promise<ApiResponse<Customer>> => {
     await delay(MOCK_DELAY);
-    const customer = mockCustomers.find((c) => c.id === id);
+    const customer = mockCustomers.find((c) => c.clientId === id);
     if (!customer) {
       return {
         success: false,
@@ -590,36 +609,45 @@ export const customersApi = {
    * POST /api/customers
    */
   create: async (
-    d: Omit<Customer, "id" | "createdAt" | "totalSpent" | "subscriptions">
+    d: Omit<CreateCustomerRequest, "id" | "createdAt" | "totalSpent" | "subscriptions">
   ): Promise<ApiResponse<Customer>> => {
-    const res = await fetch(`${API_BASE_URL}/api/v1/workspaces/1/clients`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
-      body: JSON.stringify({
-        name: d.name,
-        email: d.email,
-        contactNumber: d.phone,
-        billingAddress: d.address,
-      }),
-    });
-
+  
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/workspaces/ws_main/clients`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          name: d.name,
+          email: d.email,
+          contactNumber: d.contactNumber,
+          billingAddress: d.billingAddress,
+        }),
+      }
+    );
+  
     if (!res.ok) {
-      throw new Error("Login failed");
+      const err = await res.text();
+      throw new Error(`Create client failed (${res.status}): ${err}`);
     }
-
+  
     const data = await res.json();
-    const newCustomer: Customer = {
-      ...data,
-      id: `cus_${crypto.randomUUID().slice(0, 8)}`,
-      createdAt: new Date().toISOString(),
-      totalSpent: 0,
-      subscriptions: 0,
+  
+    return {
+      success: true,
+      data: {
+        ...data,
+        id: `cus_${crypto.randomUUID().slice(0, 8)}`,
+        createdAt: new Date().toISOString(),
+        totalSpent: 0,
+        subscriptions: 0,
+      },
     };
-    return { success: true, data: newCustomer };
   },
+  
 
   /**
    * PUT /api/customers/:id
@@ -629,7 +657,7 @@ export const customersApi = {
     data: Partial<Customer>
   ): Promise<ApiResponse<Customer>> => {
     await delay(MOCK_DELAY);
-    const customer = mockCustomers.find((c) => c.id === id);
+    const customer = mockCustomers.find((c) => c.clientId === id);
     if (!customer) {
       return {
         success: false,
@@ -695,13 +723,27 @@ export const productsApi = {
   create: async (
     data: Omit<Product, "id" | "createdAt">
   ): Promise<ApiResponse<Product>> => {
-    await delay(MOCK_DELAY);
-    const newProduct: Product = {
-      ...data,
-      id: `prod_${crypto.randomUUID().slice(0, 8)}`,
-      createdAt: new Date().toISOString(),
+  
+    const res = await fetch(`${API_BASE_URL}/api/v1/workspaces/ws_main/products`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include", // 🔥 REQUIRED (cookies/JWT)
+      body: JSON.stringify(data),
+    });
+  
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Create product failed (${res.status}): ${err}`);
+    }
+  
+    const product: Product = await res.json();
+  
+    return {
+      success: true,
+      data: product,
     };
-    return { success: true, data: newProduct };
   },
 
   /**

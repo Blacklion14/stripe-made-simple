@@ -91,23 +91,23 @@ export default function CustomersPage() {
   );
 
   const handleCreate = async () => {
-    await dispatch(createCustomer(formData));
+    await dispatch(
+      createCustomer({
+        workspaceId: 'ws_main',
+        name: formData.name,
+        email: formData.email,
+        contactNumber: formData.phone,
+        billingAddress: formData.address,
+      })
+    );
+  
     setIsCreateOpen(false);
     setFormData({ name: '', email: '', phone: '', address: '' });
   };
 
-  const handleEdit = async () => {
-    if (selectedCustomer) {
-      await dispatch(updateCustomer({ id: selectedCustomer.id, data: formData }));
-      setIsEditOpen(false);
-      setSelectedCustomerLocal(null);
-      setFormData({ name: '', email: '', phone: '', address: '' });
-    }
-  };
-
   const handleDelete = async () => {
     if (selectedCustomer) {
-      await dispatch(deleteCustomer(selectedCustomer.id));
+      await dispatch(deleteCustomer(selectedCustomer.clientId));
       setIsDeleteOpen(false);
       setSelectedCustomerLocal(null);
     }
@@ -118,8 +118,8 @@ export default function CustomersPage() {
     setFormData({
       name: customer.name,
       email: customer.email,
-      phone: customer.phone || '',
-      address: customer.address || '',
+      phone: customer.contactNumber || '',
+      address: customer.billingAddress || '',
     });
     setIsEditOpen(true);
   };
@@ -220,7 +220,7 @@ export default function CustomersPage() {
               {/* Mobile View */}
               <div className="sm:hidden">
                 {filteredCustomers.map((customer) => (
-                  <MobileCustomerCard key={customer.id} customer={customer} />
+                  <MobileCustomerCard key={customer.clientId} customer={customer} />
                 ))}
               </div>
 
@@ -239,7 +239,7 @@ export default function CustomersPage() {
                   </TableHeader>
                   <TableBody>
                     {filteredCustomers.map((customer) => (
-                      <TableRow key={customer.id}>
+                      <TableRow key={customer.clientId}>
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-medium flex-shrink-0">
@@ -248,7 +248,7 @@ export default function CustomersPage() {
                             <div className="min-w-0">
                               <p className="font-medium text-foreground truncate">{customer.name}</p>
                               <p className="text-sm text-muted-foreground truncate md:hidden">{customer.email}</p>
-                              <p className="text-sm text-muted-foreground hidden md:block">{customer.id}</p>
+                              <p className="text-sm text-muted-foreground hidden md:block">{customer.clientId}</p>
                             </div>
                           </div>
                         </TableCell>
@@ -258,10 +258,10 @@ export default function CustomersPage() {
                               <Mail className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                               <span className="truncate max-w-[200px]">{customer.email}</span>
                             </div>
-                            {customer.phone && (
+                            {customer.contactNumber && (
                               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                 <Phone className="h-3 w-3 flex-shrink-0" />
-                                <span>{customer.phone}</span>
+                                <span>{customer.contactNumber}</span>
                               </div>
                             )}
                           </div>
@@ -271,7 +271,7 @@ export default function CustomersPage() {
                           <Badge variant="secondary">{customer.subscriptions}</Badge>
                         </TableCell>
                         <TableCell className="text-muted-foreground hidden lg:table-cell">
-                          {format(new Date(customer.createdAt), 'MMM d, yyyy')}
+                          {customer.createdAt ? format(new Date(customer.createdAt), 'MMM d, yyyy'): '—'}
                         </TableCell>
                         <TableCell>
                           <DropdownMenu>
@@ -402,7 +402,8 @@ export default function CustomersPage() {
           </div>
           <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button variant="outline" onClick={() => setIsEditOpen(false)} className="w-full sm:w-auto">Cancel</Button>
-            <Button onClick={handleEdit} className="w-full sm:w-auto">Save Changes</Button>
+            {/*Change handler in future*/}
+            <Button onClick={handleDelete} className="w-full sm:w-auto">Save Changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

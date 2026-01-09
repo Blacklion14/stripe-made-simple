@@ -17,14 +17,27 @@ export interface AuthState {
 
 // Customer Types
 export interface Customer {
-  id: string;
+  clientId: string;
   name: string;
+  workspaceId: string;
   email: string;
-  phone?: string;
-  address?: string;
-  createdAt: string;
+  contactNumber?: string;
+  companyName?: string;
+  billingAddress?: string;
+  taxId?: string;
+  createdAt?: string;
   totalSpent: number;
   subscriptions: number;
+}
+
+export interface CreateCustomerRequest {
+  workspaceId: string;
+  name: string;
+  email: string;
+  contactNumber?: string;
+  billingAddress?: string;
+  companyName?: string;
+  taxId?: string;
 }
 
 // Product Types
