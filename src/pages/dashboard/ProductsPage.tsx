@@ -72,7 +72,7 @@ export default function ProductsPage() {
     price: 0,
     currency: 'USD',
     active: true,
-    category: 'Subscription',
+    productCategory: 'RECURRING',
   });
 
   useEffect(() => {
@@ -87,12 +87,14 @@ export default function ProductsPage() {
     }).format(amount);
   };
 
-  const filteredProducts = products.filter((product) =>
+  const filteredProducts = (products ?? []).filter((product) =>
     product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     product.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleCreate = async () => {
+    console.log(formData);
+    
     await dispatch(createProduct(formData));
     setIsCreateOpen(false);
     resetForm();
@@ -100,7 +102,7 @@ export default function ProductsPage() {
 
   const handleEdit = async () => {
     if (selectedProduct) {
-      await dispatch(updateProduct({ id: selectedProduct.id, data: formData }));
+      await dispatch(updateProduct({ id: selectedProduct.productId, data: formData }));
       setIsEditOpen(false);
       setSelectedProduct(null);
       resetForm();
@@ -109,7 +111,7 @@ export default function ProductsPage() {
 
   const handleDelete = async () => {
     if (selectedProduct) {
-      await dispatch(deleteProduct(selectedProduct.id));
+      await dispatch(deleteProduct(selectedProduct.productId));
       setIsDeleteOpen(false);
       setSelectedProduct(null);
     }
@@ -122,7 +124,7 @@ export default function ProductsPage() {
       price: 0,
       currency: 'USD',
       active: true,
-      category: 'Subscription',
+      productCategory: 'Recurring',
     });
   };
 
@@ -134,7 +136,7 @@ export default function ProductsPage() {
       price: product.price,
       currency: product.currency,
       active: product.active,
-      category: product.category,
+      productCategory: product.productCategory,
     });
     setIsEditOpen(true);
   };
@@ -286,16 +288,15 @@ export default function ProductsPage() {
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
                 <Select
-                  value={formData.category}
-                  onValueChange={(value) => setFormData({ ...formData, category: value })}
+                  value={formData.productCategory}
+                  onValueChange={(value) => setFormData({ ...formData, productCategory: value })}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Subscription">Subscription</SelectItem>
-                    <SelectItem value="Add-on">Add-on</SelectItem>
-                    <SelectItem value="One-time">One-time</SelectItem>
+                    <SelectItem value="RECURRING">Recurring</SelectItem>
+                    <SelectItem value="ONE_TIME">One-time</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -360,8 +361,8 @@ export default function ProductsPage() {
               <div className="space-y-2">
                 <Label htmlFor="edit-category">Category</Label>
                 <Select
-                  value={formData.category}
-                  onValueChange={(value) => setFormData({ ...formData, category: value })}
+                  value={formData.productCategory}
+                  onValueChange={(value) => setFormData({ ...formData, productCategory: value })}
                 >
                   <SelectTrigger>
                     <SelectValue />

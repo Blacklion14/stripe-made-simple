@@ -17,6 +17,7 @@ import type {
   ApiResponse,
   PaginatedResponse,
   CreateCustomerRequest,
+  CreateProductRequest
 } from "@/types";
 
 // =============================================================================
@@ -103,54 +104,54 @@ const mockCustomers: Customer[] = [
 
 const mockProducts: Product[] = [
   {
-    id: "prod_1",
+    productId: "prod_1",
     name: "Starter Plan",
     description: "Perfect for small teams getting started",
     price: 29,
     currency: "USD",
     active: true,
     createdAt: "2024-01-01T00:00:00Z",
-    category: "Subscription",
+    productCategory: "Subscription",
   },
   {
-    id: "prod_2",
+    productId: "prod_2",
     name: "Professional Plan",
     description: "For growing businesses with advanced needs",
     price: 99,
     currency: "USD",
     active: true,
     createdAt: "2024-01-01T00:00:00Z",
-    category: "Subscription",
+    productCategory: "Subscription",
   },
   {
-    id: "prod_3",
+    productId: "prod_3",
     name: "Enterprise Plan",
     description: "Full-featured solution for large organizations",
     price: 299,
     currency: "USD",
     active: true,
     createdAt: "2024-01-01T00:00:00Z",
-    category: "Subscription",
+    productCategory: "Subscription",
   },
   {
-    id: "prod_4",
+    productId: "prod_4",
     name: "API Access",
     description: "Programmatic access to all features",
     price: 49,
     currency: "USD",
     active: true,
     createdAt: "2024-01-05T00:00:00Z",
-    category: "Add-on",
+    productCategory: "Add-on",
   },
   {
-    id: "prod_5",
+    productId: "prod_5",
     name: "Priority Support",
     description: "24/7 dedicated support channel",
     price: 199,
     currency: "USD",
     active: false,
     createdAt: "2024-01-10T00:00:00Z",
-    category: "Add-on",
+    productCategory: "Add-on",
   },
 ];
 
@@ -689,15 +690,28 @@ export const productsApi = {
     page = 1,
     pageSize = 10
   ): Promise<PaginatedResponse<Product>> => {
-    await delay(MOCK_DELAY);
-    const start = (page - 1) * pageSize;
-    const paginatedData = mockProducts.slice(start, start + pageSize);
+
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/workspaces/ws_main/products?page=${page - 1}&size=${pageSize}`,
+      {
+        method: "GET",
+        credentials: "include", // 🔥 required for auth (cookies/JWT)
+      }
+    );
+
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Fetch products failed (${res.status}): ${err}`);
+    }
+
+    const data = await res.json();
+
     return {
-      data: paginatedData,
-      total: mockProducts.length,
-      page,
-      pageSize,
-      totalPages: Math.ceil(mockProducts.length / pageSize),
+      data: data.content,          // Spring Page<Product>
+      total: data.totalElements,
+      page: data.number + 1,       // convert back to 1-based
+      pageSize: data.size,
+      totalPages: data.totalPages,
     };
   },
 
@@ -706,7 +720,7 @@ export const productsApi = {
    */
   getById: async (id: string): Promise<ApiResponse<Product>> => {
     await delay(MOCK_DELAY);
-    const product = mockProducts.find((p) => p.id === id);
+    const product = mockProducts.find((p) => p.productId === id);
     if (!product) {
       return {
         success: false,
@@ -721,7 +735,7 @@ export const productsApi = {
    * POST /api/products
    */
   create: async (
-    data: Omit<Product, "id" | "createdAt">
+    data: Omit<CreateProductRequest, "id" | "createdAt">
   ): Promise<ApiResponse<Product>> => {
   
     const res = await fetch(`${API_BASE_URL}/api/v1/workspaces/ws_main/products`, {
@@ -754,7 +768,7 @@ export const productsApi = {
     data: Partial<Product>
   ): Promise<ApiResponse<Product>> => {
     await delay(MOCK_DELAY);
-    const product = mockProducts.find((p) => p.id === id);
+    const product = mockProducts.find((p) => p.productId === id);
     if (!product) {
       return {
         success: false,

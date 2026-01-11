@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import type { Product, PaginatedResponse } from '@/types';
+import type { Product, PaginatedResponse, CreateProductRequest } from '@/types';
 import { productsApi } from '@/services/api';
 
 interface ProductsState {
@@ -15,8 +15,8 @@ interface ProductsState {
   };
 }
 
-const initialState: ProductsState = {
-  products: [],
+const initialState = {
+  products: [], 
   selectedProduct: null,
   isLoading: false,
   error: null,
@@ -50,7 +50,7 @@ export const fetchProductById = createAsyncThunk(
 
 export const createProduct = createAsyncThunk(
   'products/create',
-  async (data: Omit<Product, 'id' | 'createdAt'>, { rejectWithValue }) => {
+  async (data: Omit<CreateProductRequest, 'id' | 'createdAt'>, { rejectWithValue }) => {
     const response = await productsApi.create(data);
     if (!response.success) {
       return rejectWithValue(response.message);
@@ -146,11 +146,11 @@ const productsSlice = createSlice({
     // Update
     builder
       .addCase(updateProduct.fulfilled, (state, action) => {
-        const index = state.products.findIndex(p => p.id === action.payload.id);
+        const index = state.products.findIndex(p => p.id === action.payload.productId);
         if (index !== -1) {
           state.products[index] = action.payload;
         }
-        if (state.selectedProduct?.id === action.payload.id) {
+        if (state.selectedProduct?.id === action.payload.productId) {
           state.selectedProduct = action.payload;
         }
       });
