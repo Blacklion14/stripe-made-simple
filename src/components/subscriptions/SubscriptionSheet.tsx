@@ -394,14 +394,14 @@ export function SubscriptionSheet({ open, onOpenChange, subscription, mode }: Su
                           <div className="space-y-1.5">
                             <Label className="text-xs">Tax</Label>
                             <Select
-                              value={item.taxId}
-                              onValueChange={(value) => updateLineItem(item.id, 'taxId', value)}
+                              value={item.taxId || 'none'}
+                              onValueChange={(value) => updateLineItem(item.id, 'taxId', value === 'none' ? '' : value)}
                             >
                               <SelectTrigger>
                                 <SelectValue placeholder="No tax" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="">No tax</SelectItem>
+                                <SelectItem value="none">No tax</SelectItem>
                                 {taxes.filter((t) => t.active).map((tax) => (
                                   <SelectItem key={tax.id} value={tax.id}>
                                     {tax.name} ({tax.rate}%)
