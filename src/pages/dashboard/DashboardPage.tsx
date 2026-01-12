@@ -267,7 +267,7 @@ export default function DashboardPage() {
           ) : (
             <div className="space-y-3 sm:space-y-4">
               {recentCustomers.map((customer) => (
-                <div key={customer.id} className="flex items-center gap-3 sm:gap-4 py-2">
+                <div key={customer.clientId} className="flex items-center gap-3 sm:gap-4 py-2">
                   <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-medium text-sm flex-shrink-0">
                     {customer.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
                   </div>

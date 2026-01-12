@@ -6,6 +6,7 @@ import productsReducer from './slices/productsSlice';
 import subscriptionsReducer from './slices/subscriptionsSlice';
 import invoicesReducer from './slices/invoicesSlice';
 import dashboardReducer from './slices/dashboardSlice';
+import taxesReducer from './slices/taxesSlice';
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -14,6 +15,7 @@ const rootReducer = combineReducers({
   subscriptions: subscriptionsReducer,
   invoices: invoicesReducer,
   dashboard: dashboardReducer,
+  taxes: taxesReducer,
 });
 
 // Load persisted state from localStorage

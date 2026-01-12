@@ -11,13 +11,15 @@ import type {
   Customer,
   Product,
   Subscription,
+  SubscriptionItem,
   Invoice,
   DashboardStats,
   ChartData,
   ApiResponse,
   PaginatedResponse,
   CreateCustomerRequest,
-  CreateProductRequest
+  CreateProductRequest,
+  Tax,
 } from "@/types";
 
 // =============================================================================
@@ -155,6 +157,42 @@ const mockProducts: Product[] = [
   },
 ];
 
+// Mock Taxes
+const mockTaxes: Tax[] = [
+  {
+    id: "tax_1",
+    name: "GST",
+    rate: 18,
+    description: "Goods and Services Tax",
+    active: true,
+    createdAt: "2024-01-01T00:00:00Z",
+  },
+  {
+    id: "tax_2",
+    name: "VAT",
+    rate: 20,
+    description: "Value Added Tax",
+    active: true,
+    createdAt: "2024-01-01T00:00:00Z",
+  },
+  {
+    id: "tax_3",
+    name: "Sales Tax",
+    rate: 8.5,
+    description: "State Sales Tax",
+    active: true,
+    createdAt: "2024-01-01T00:00:00Z",
+  },
+  {
+    id: "tax_4",
+    name: "No Tax",
+    rate: 0,
+    description: "Tax exempt",
+    active: true,
+    createdAt: "2024-01-01T00:00:00Z",
+  },
+];
+
 const mockSubscriptions: Subscription[] = [
   {
     id: "sub_1",
@@ -163,10 +201,29 @@ const mockSubscriptions: Subscription[] = [
     customerEmail: "billing@acme.com",
     productId: "prod_2",
     productName: "Professional Plan",
+    items: [
+      {
+        id: "si_1",
+        productId: "prod_2",
+        productName: "Professional Plan",
+        quantity: 1,
+        unitPrice: 99,
+        taxId: "tax_1",
+        taxName: "GST",
+        taxRate: 18,
+        subtotal: 99,
+        taxAmount: 17.82,
+        total: 116.82,
+      },
+    ],
     status: "active",
-    amount: 99,
+    amount: 116.82,
+    subtotal: 99,
+    taxTotal: 17.82,
     currency: "USD",
+    intervalCount: 1,
     interval: "month",
+    startDate: "2024-06-01T00:00:00Z",
     currentPeriodStart: "2024-12-01T00:00:00Z",
     currentPeriodEnd: "2025-01-01T00:00:00Z",
     createdAt: "2024-06-01T00:00:00Z",
@@ -178,11 +235,43 @@ const mockSubscriptions: Subscription[] = [
     customerName: "Acme Corp",
     customerEmail: "billing@acme.com",
     productId: "prod_4",
-    productName: "API Access",
+    productName: "API Access + Pro Plan",
+    items: [
+      {
+        id: "si_2",
+        productId: "prod_4",
+        productName: "API Access",
+        quantity: 1,
+        unitPrice: 49,
+        taxId: "tax_1",
+        taxName: "GST",
+        taxRate: 18,
+        subtotal: 49,
+        taxAmount: 8.82,
+        total: 57.82,
+      },
+      {
+        id: "si_3",
+        productId: "prod_2",
+        productName: "Professional Plan",
+        quantity: 2,
+        unitPrice: 99,
+        taxId: "tax_1",
+        taxName: "GST",
+        taxRate: 18,
+        subtotal: 198,
+        taxAmount: 35.64,
+        total: 233.64,
+      },
+    ],
     status: "active",
-    amount: 49,
+    amount: 291.46,
+    subtotal: 247,
+    taxTotal: 44.46,
     currency: "USD",
+    intervalCount: 1,
     interval: "month",
+    startDate: "2024-07-15T00:00:00Z",
     currentPeriodStart: "2024-12-01T00:00:00Z",
     currentPeriodEnd: "2025-01-01T00:00:00Z",
     createdAt: "2024-07-15T00:00:00Z",
@@ -195,12 +284,28 @@ const mockSubscriptions: Subscription[] = [
     customerEmail: "finance@techstart.io",
     productId: "prod_1",
     productName: "Starter Plan",
+    items: [
+      {
+        id: "si_4",
+        productId: "prod_1",
+        productName: "Starter Plan",
+        quantity: 1,
+        unitPrice: 29,
+        subtotal: 29,
+        taxAmount: 0,
+        total: 29,
+      },
+    ],
     status: "active",
     amount: 29,
+    subtotal: 29,
+    taxTotal: 0,
     currency: "USD",
-    interval: "month",
+    intervalCount: 2,
+    interval: "week",
+    startDate: "2024-03-05T00:00:00Z",
     currentPeriodStart: "2024-12-05T00:00:00Z",
-    currentPeriodEnd: "2025-01-05T00:00:00Z",
+    currentPeriodEnd: "2024-12-19T00:00:00Z",
     createdAt: "2024-03-05T00:00:00Z",
     updatedAt: "2024-12-05T00:00:00Z",
   },
@@ -211,10 +316,29 @@ const mockSubscriptions: Subscription[] = [
     customerEmail: "accounts@globalsol.com",
     productId: "prod_3",
     productName: "Enterprise Plan",
+    items: [
+      {
+        id: "si_5",
+        productId: "prod_3",
+        productName: "Enterprise Plan",
+        quantity: 5,
+        unitPrice: 299,
+        taxId: "tax_2",
+        taxName: "VAT",
+        taxRate: 20,
+        subtotal: 1495,
+        taxAmount: 299,
+        total: 1794,
+      },
+    ],
     status: "active",
-    amount: 299,
+    amount: 1794,
+    subtotal: 1495,
+    taxTotal: 299,
     currency: "USD",
+    intervalCount: 1,
     interval: "month",
+    startDate: "2024-01-20T00:00:00Z",
     currentPeriodStart: "2024-12-10T00:00:00Z",
     currentPeriodEnd: "2025-01-10T00:00:00Z",
     createdAt: "2024-01-20T00:00:00Z",
@@ -227,10 +351,26 @@ const mockSubscriptions: Subscription[] = [
     customerEmail: "hello@startupxyz.com",
     productId: "prod_1",
     productName: "Starter Plan",
+    items: [
+      {
+        id: "si_6",
+        productId: "prod_1",
+        productName: "Starter Plan",
+        quantity: 1,
+        unitPrice: 29,
+        subtotal: 29,
+        taxAmount: 0,
+        total: 29,
+      },
+    ],
     status: "past_due",
     amount: 29,
+    subtotal: 29,
+    taxTotal: 0,
     currency: "USD",
+    intervalCount: 1,
     interval: "month",
+    startDate: "2024-08-15T00:00:00Z",
     currentPeriodStart: "2024-11-15T00:00:00Z",
     currentPeriodEnd: "2024-12-15T00:00:00Z",
     createdAt: "2024-08-15T00:00:00Z",
@@ -243,10 +383,29 @@ const mockSubscriptions: Subscription[] = [
     customerEmail: "billing@enterprise.co",
     productId: "prod_3",
     productName: "Enterprise Plan",
+    items: [
+      {
+        id: "si_7",
+        productId: "prod_3",
+        productName: "Enterprise Plan",
+        quantity: 1,
+        unitPrice: 299,
+        taxId: "tax_3",
+        taxName: "Sales Tax",
+        taxRate: 8.5,
+        subtotal: 3588,
+        taxAmount: 304.98,
+        total: 3892.98,
+      },
+    ],
     status: "active",
-    amount: 3588,
+    amount: 3892.98,
+    subtotal: 3588,
+    taxTotal: 304.98,
     currency: "USD",
+    intervalCount: 1,
     interval: "year",
+    startDate: "2024-06-01T00:00:00Z",
     currentPeriodStart: "2024-06-01T00:00:00Z",
     currentPeriodEnd: "2025-06-01T00:00:00Z",
     createdAt: "2024-06-01T00:00:00Z",
@@ -1088,6 +1247,53 @@ export const dashboardApi = {
 };
 
 // =============================================================================
+// Taxes API
+// =============================================================================
+
+export const taxesApi = {
+  /**
+   * GET /api/taxes
+   */
+  getAll: async (): Promise<ApiResponse<Tax[]>> => {
+    await delay(MOCK_DELAY);
+    return { success: true, data: mockTaxes };
+  },
+
+  /**
+   * POST /api/taxes
+   */
+  create: async (data: Omit<Tax, 'id' | 'createdAt'>): Promise<ApiResponse<Tax>> => {
+    await delay(MOCK_DELAY);
+    const newTax: Tax = {
+      ...data,
+      id: `tax_${crypto.randomUUID().slice(0, 8)}`,
+      createdAt: new Date().toISOString(),
+    };
+    return { success: true, data: newTax };
+  },
+
+  /**
+   * PUT /api/taxes/:id
+   */
+  update: async (id: string, data: Partial<Tax>): Promise<ApiResponse<Tax>> => {
+    await delay(MOCK_DELAY);
+    const tax = mockTaxes.find((t) => t.id === id);
+    if (!tax) {
+      return { success: false, data: null as any, message: 'Tax not found' };
+    }
+    return { success: true, data: { ...tax, ...data } };
+  },
+
+  /**
+   * DELETE /api/taxes/:id
+   */
+  delete: async (id: string): Promise<ApiResponse<null>> => {
+    await delay(MOCK_DELAY);
+    return { success: true, data: null, message: 'Tax deleted' };
+  },
+};
+
+// =============================================================================
 // Export all APIs
 // =============================================================================
 
@@ -1098,6 +1304,7 @@ export const api = {
   subscriptions: subscriptionsApi,
   invoices: invoicesApi,
   dashboard: dashboardApi,
+  taxes: taxesApi,
 };
 
 export default api;

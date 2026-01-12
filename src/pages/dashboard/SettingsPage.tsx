@@ -44,7 +44,6 @@ export default function SettingsPage() {
   const [profileData, setProfileData] = useState({
     name: user?.name || "",
     email: user?.email || "",
-    companyName: user?.companyName || "",
   });
 
   const [notifications, setNotifications] = useState({
@@ -134,33 +133,7 @@ export default function SettingsPage() {
               />
             </div>
           </div>
-          <Label className="mt-2">Company Details</Label>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Input
-                id="companyName"
-                value={profileData.companyName}
-                onChange={(e) =>
-                  setProfileData({
-                    ...profileData,
-                    companyName: e.target.value,
-                  })
-                }
-                placeholder="Your name"
-              />
-            </div>
-            <div className="space-y-2">
-              <Input
-                id="email"
-                type="email"
-                value={profileData.email}
-                onChange={(e) =>
-                  setProfileData({ ...profileData, email: e.target.value })
-                }
-                placeholder="you@example.com"
-              />
-            </div>
-          </div>
+          <Separator className="my-4" />
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
