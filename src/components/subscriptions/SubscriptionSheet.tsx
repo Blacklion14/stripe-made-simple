@@ -70,14 +70,14 @@ export function SubscriptionSheet({ open, onOpenChange, subscription, mode }: Su
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Load data on mount
+  // Load data on mount - always fetch to ensure fresh data
   useEffect(() => {
     if (open) {
-      if (customers.length === 0) dispatch(fetchCustomers({}));
-      if (products.length === 0) dispatch(fetchProducts({}));
-      if (taxes.length === 0) dispatch(fetchTaxes());
+      dispatch(fetchCustomers({}));
+      dispatch(fetchProducts({}));
+      dispatch(fetchTaxes());
     }
-  }, [open, dispatch, customers.length, products.length, taxes.length]);
+  }, [open, dispatch]);
 
   // Initialize form when editing
   useEffect(() => {
@@ -295,17 +295,23 @@ export function SubscriptionSheet({ open, onOpenChange, subscription, mode }: Su
               </Label>
               <Select value={customerId} onValueChange={setCustomerId} disabled={mode === 'edit'}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a customer" />
+                  <SelectValue placeholder={customers.length === 0 ? "Loading customers..." : "Select a customer"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {customers.map((customer) => (
-                    <SelectItem key={customer.clientId} value={customer.clientId}>
-                      <div className="flex flex-col">
-                        <span>{customer.name}</span>
-                        <span className="text-xs text-muted-foreground">{customer.email}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
+                  {customers.length === 0 ? (
+                    <div className="p-4 text-center text-sm text-muted-foreground">
+                      No customers available
+                    </div>
+                  ) : (
+                    customers.map((customer) => (
+                      <SelectItem key={customer.clientId} value={customer.clientId}>
+                        <div className="flex flex-col">
+                          <span>{customer.name}</span>
+                          <span className="text-xs text-muted-foreground">{customer.email}</span>
+                        </div>
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -362,19 +368,25 @@ export function SubscriptionSheet({ open, onOpenChange, subscription, mode }: Su
                             onValueChange={(value) => updateLineItem(item.id, 'productId', value)}
                           >
                             <SelectTrigger>
-                              <SelectValue placeholder="Select product" />
+                              <SelectValue placeholder={products.length === 0 ? "Loading..." : "Select product"} />
                             </SelectTrigger>
                             <SelectContent>
-                              {products.filter((p) => p.active).map((product) => (
-                                <SelectItem key={product.productId} value={product.productId}>
-                                  <div className="flex items-center justify-between gap-4 w-full">
-                                    <span>{product.name}</span>
-                                    <span className="text-muted-foreground">
-                                      {formatCurrency(product.price, product.currency)}
-                                    </span>
-                                  </div>
-                                </SelectItem>
-                              ))}
+                              {products.filter((p) => p.active).length === 0 ? (
+                                <div className="p-4 text-center text-sm text-muted-foreground">
+                                  No active products
+                                </div>
+                              ) : (
+                                products.filter((p) => p.active).map((product) => (
+                                  <SelectItem key={product.productId} value={product.productId}>
+                                    <div className="flex items-center justify-between gap-4 w-full">
+                                      <span>{product.name}</span>
+                                      <span className="text-muted-foreground">
+                                        {formatCurrency(product.price, product.currency)}
+                                      </span>
+                                    </div>
+                                  </SelectItem>
+                                ))
+                              )}
                             </SelectContent>
                           </Select>
                         </div>
