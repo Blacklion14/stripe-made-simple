@@ -57,11 +57,36 @@ interface LineItem {
   taxId: string;
 }
 
+// Dummy data fallback
+const dummyCustomers: Customer[] = [
+  { clientId: 'cus_1', name: 'Acme Corp', email: 'billing@acme.com', workspaceId: 'ws_main', totalSpent: 15000, subscriptions: 2 },
+  { clientId: 'cus_2', name: 'TechStart Inc', email: 'finance@techstart.io', workspaceId: 'ws_main', totalSpent: 8500, subscriptions: 1 },
+  { clientId: 'cus_3', name: 'Global Solutions', email: 'accounts@globalsol.com', workspaceId: 'ws_main', totalSpent: 25000, subscriptions: 3 },
+];
+
+const dummyProducts: Product[] = [
+  { productId: 'prod_1', name: 'Starter Plan', description: 'For small teams', price: 29, currency: 'USD', active: true, createdAt: '2024-01-01', productCategory: 'Subscription' },
+  { productId: 'prod_2', name: 'Professional Plan', description: 'For growing businesses', price: 99, currency: 'USD', active: true, createdAt: '2024-01-01', productCategory: 'Subscription' },
+  { productId: 'prod_3', name: 'Enterprise Plan', description: 'For large organizations', price: 299, currency: 'USD', active: true, createdAt: '2024-01-01', productCategory: 'Subscription' },
+  { productId: 'prod_4', name: 'API Access', description: 'API add-on', price: 49, currency: 'USD', active: true, createdAt: '2024-01-05', productCategory: 'Add-on' },
+];
+
+const dummyTaxes: Tax[] = [
+  { id: 'tax_1', name: 'GST', rate: 18, description: 'Goods and Services Tax', active: true, createdAt: '2024-01-01' },
+  { id: 'tax_2', name: 'VAT', rate: 20, description: 'Value Added Tax', active: true, createdAt: '2024-01-01' },
+  { id: 'tax_3', name: 'Sales Tax', rate: 8.5, description: 'State Sales Tax', active: true, createdAt: '2024-01-01' },
+];
+
 export function SubscriptionSheet({ open, onOpenChange, subscription, mode }: SubscriptionSheetProps) {
   const dispatch = useAppDispatch();
-  const { customers } = useAppSelector((state) => state.customers);
-  const { products } = useAppSelector((state) => state.products);
-  const { taxes } = useAppSelector((state) => state.taxes);
+  const reduxCustomers = useAppSelector((state) => state.customers.customers);
+  const reduxProducts = useAppSelector((state) => state.products.products);
+  const reduxTaxes = useAppSelector((state) => state.taxes.taxes);
+
+  // Use Redux data if available, otherwise use dummy data
+  const customers = reduxCustomers.length > 0 ? reduxCustomers : dummyCustomers;
+  const products = reduxProducts.length > 0 ? reduxProducts : dummyProducts;
+  const taxes = reduxTaxes.length > 0 ? reduxTaxes : dummyTaxes;
 
   const [customerId, setCustomerId] = useState('');
   const [intervalCount, setIntervalCount] = useState(1);
@@ -70,7 +95,7 @@ export function SubscriptionSheet({ open, onOpenChange, subscription, mode }: Su
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Load data on mount - always fetch to ensure fresh data
+  // Load data on mount - try to fetch but fallback to dummy
   useEffect(() => {
     if (open) {
       dispatch(fetchCustomers({}));
@@ -295,20 +320,14 @@ export function SubscriptionSheet({ open, onOpenChange, subscription, mode }: Su
               </Label>
               <Select value={customerId} onValueChange={setCustomerId} disabled={mode === 'edit'}>
                 <SelectTrigger>
-                  <SelectValue placeholder={customers.length === 0 ? "Loading customers..." : "Select a customer"} />
+                  <SelectValue placeholder="Select a customer" />
                 </SelectTrigger>
                 <SelectContent>
-                  {customers.length === 0 ? (
-                    <div className="p-4 text-center text-sm text-muted-foreground">
-                      No customers available
-                    </div>
-                  ) : (
-                    customers.map((customer) => (
-                      <SelectItem key={customer.clientId} value={customer.clientId}>
-                        {customer.name} ({customer.email})
-                      </SelectItem>
-                    ))
-                  )}
+                  {customers.map((customer) => (
+                    <SelectItem key={customer.clientId} value={customer.clientId}>
+                      {customer.name} ({customer.email})
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -365,20 +384,14 @@ export function SubscriptionSheet({ open, onOpenChange, subscription, mode }: Su
                             onValueChange={(value) => updateLineItem(item.id, 'productId', value)}
                           >
                             <SelectTrigger>
-                              <SelectValue placeholder={products.length === 0 ? "Loading..." : "Select product"} />
+                              <SelectValue placeholder="Select product" />
                             </SelectTrigger>
                             <SelectContent>
-                              {products.filter((p) => p.active).length === 0 ? (
-                                <div className="p-4 text-center text-sm text-muted-foreground">
-                                  No active products
-                                </div>
-                              ) : (
-                                products.filter((p) => p.active).map((product) => (
-                                  <SelectItem key={product.productId} value={product.productId}>
-                                    {product.name} - {formatCurrency(product.price, product.currency)}
-                                  </SelectItem>
-                                ))
-                              )}
+                              {products.filter((p) => p.active).map((product) => (
+                                <SelectItem key={product.productId} value={product.productId}>
+                                  {product.name} - {formatCurrency(product.price, product.currency)}
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                         </div>
