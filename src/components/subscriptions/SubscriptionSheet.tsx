@@ -305,10 +305,7 @@ export function SubscriptionSheet({ open, onOpenChange, subscription, mode }: Su
                   ) : (
                     customers.map((customer) => (
                       <SelectItem key={customer.clientId} value={customer.clientId}>
-                        <div className="flex flex-col">
-                          <span>{customer.name}</span>
-                          <span className="text-xs text-muted-foreground">{customer.email}</span>
-                        </div>
+                        {customer.name} ({customer.email})
                       </SelectItem>
                     ))
                   )}
@@ -378,12 +375,7 @@ export function SubscriptionSheet({ open, onOpenChange, subscription, mode }: Su
                               ) : (
                                 products.filter((p) => p.active).map((product) => (
                                   <SelectItem key={product.productId} value={product.productId}>
-                                    <div className="flex items-center justify-between gap-4 w-full">
-                                      <span>{product.name}</span>
-                                      <span className="text-muted-foreground">
-                                        {formatCurrency(product.price, product.currency)}
-                                      </span>
-                                    </div>
+                                    {product.name} - {formatCurrency(product.price, product.currency)}
                                   </SelectItem>
                                 ))
                               )}
