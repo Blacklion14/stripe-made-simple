@@ -17,27 +17,59 @@ export interface AuthState {
 
 // Customer Types
 export interface Customer {
-  id: string;
+  clientId: string;
   name: string;
+  workspaceId: string;
   email: string;
-  phone?: string;
-  address?: string;
-  createdAt: string;
+  contactNumber?: string;
+  companyName?: string;
+  billingAddress?: string;
+  taxId?: string;
+  createdAt?: string;
   totalSpent: number;
   subscriptions: number;
 }
 
+export interface CreateCustomerRequest {
+  workspaceId: string;
+  name: string;
+  email: string;
+  contactNumber?: string;
+  billingAddress?: string;
+  companyName?: string;
+  taxId?: string;
+}
+
 // Product Types
 export interface Product {
-  id: string;
+  productId: string;
   name: string;
   description: string;
   price: number;
   currency: string;
   active: boolean;
   createdAt: string;
-  category: string;
+  productCategory: string;
   image?: string;
+}
+
+
+export interface CreateProductRequest {
+  name: string;
+  description: string;
+  price: number;
+  currency: string;
+  active: boolean;
+  productCategory: string;
+}
+
+export interface UpdateProductRequest {
+  name?: string;
+  description?: string;
+  price?: number;
+  currency?: string;
+  active?: boolean;
+  category?: string;
 }
 
 // Subscription Types
