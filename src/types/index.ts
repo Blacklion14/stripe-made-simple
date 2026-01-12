@@ -72,20 +72,52 @@ export interface UpdateProductRequest {
   category?: string;
 }
 
+// Tax Types
+export interface Tax {
+  id: string;
+  name: string;
+  rate: number; // Percentage (e.g., 18 for 18%)
+  description?: string;
+  active: boolean;
+  createdAt: string;
+}
+
 // Subscription Types
 export type SubscriptionStatus = 'active' | 'canceled' | 'past_due' | 'trialing' | 'paused';
+export type SubscriptionInterval = 'day' | 'week' | 'month' | 'year';
+
+export interface SubscriptionItem {
+  id: string;
+  productId: string;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  taxId?: string;
+  taxName?: string;
+  taxRate?: number;
+  subtotal: number;
+  taxAmount: number;
+  total: number;
+}
 
 export interface Subscription {
   id: string;
   customerId: string;
   customerName: string;
   customerEmail: string;
-  productId: string;
-  productName: string;
+  // Legacy single product fields (kept for backward compatibility)
+  productId?: string;
+  productName?: string;
+  // New multi-product support
+  items: SubscriptionItem[];
   status: SubscriptionStatus;
-  amount: number;
+  amount: number; // Total amount
+  subtotal: number; // Before tax
+  taxTotal: number; // Total tax
   currency: string;
-  interval: 'month' | 'year';
+  intervalCount: number; // e.g., 2 for "every 2 weeks"
+  interval: SubscriptionInterval;
+  startDate: string;
   currentPeriodStart: string;
   currentPeriodEnd: string;
   createdAt: string;
@@ -120,6 +152,10 @@ export interface InvoiceItem {
   quantity: number;
   unitPrice: number;
   amount: number;
+  taxId?: string;
+  taxName?: string;
+  taxRate?: number;
+  taxAmount?: number;
 }
 
 // Dashboard Types

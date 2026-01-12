@@ -5,14 +5,13 @@ import { fetchCustomers } from '@/store/slices/customersSlice';
 import { fetchProducts } from '@/store/slices/productsSlice';
 import { 
   fetchSubscriptions,
-  createSubscription,
   cancelSubscription,
   pauseSubscription,
   resumeSubscription,
 } from '@/store/slices/subscriptionsSlice';
+import { SubscriptionSheet } from '@/components/subscriptions/SubscriptionSheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Table,
   TableBody,
@@ -21,21 +20,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -66,28 +50,23 @@ import {
   Calendar,
   Eye,
   Plus,
+  Pencil,
 } from 'lucide-react';
 import type { Subscription, SubscriptionStatus } from '@/types';
-import { format, addMonths, addYears } from 'date-fns';
+import { format } from 'date-fns';
 import { toast } from 'sonner';
 
 export default function SubscriptionsPage() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { subscriptions, isLoading, pagination } = useAppSelector((state) => state.subscriptions);
-  const { customers } = useAppSelector((state) => state.customers);
-  const { products } = useAppSelector((state) => state.products);
   
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
   const [actionType, setActionType] = useState<'cancel' | 'pause' | 'resume' | null>(null);
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  
-  const [formData, setFormData] = useState({
-    customerId: '',
-    productId: '',
-    interval: 'month' as 'month' | 'year',
-  });
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [sheetMode, setSheetMode] = useState<'create' | 'edit'>('create');
+  const [editingSubscription, setEditingSubscription] = useState<Subscription | null>(null);
 
   useEffect(() => {
     dispatch(fetchSubscriptions({}));
@@ -120,9 +99,14 @@ export default function SubscriptionsPage() {
     }
   };
 
+  const getIntervalLabel = (count: number, interval: string) => {
+    if (count === 1) return interval;
+    return `${count} ${interval}s`;
+  };
+
   const filteredSubscriptions = subscriptions.filter((sub) =>
     sub.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    sub.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (sub.productName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
     sub.customerEmail.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -148,37 +132,16 @@ export default function SubscriptionsPage() {
     setActionType(null);
   };
 
-  const handleCreate = async () => {
-    const customer = customers.find(c => c.id === formData.customerId);
-    const product = products.find(p => p.id === formData.productId);
-    
-    if (!customer || !product) {
-      toast.error('Please select a customer and product');
-      return;
-    }
+  const handleCreate = () => {
+    setSheetMode('create');
+    setEditingSubscription(null);
+    setIsSheetOpen(true);
+  };
 
-    const now = new Date();
-    const periodEnd = formData.interval === 'month' ? addMonths(now, 1) : addYears(now, 1);
-    const amount = formData.interval === 'year' ? product.price * 12 : product.price;
-
-    await dispatch(createSubscription({
-      customerId: customer.id,
-      customerName: customer.name,
-      customerEmail: customer.email,
-      productId: product.id,
-      productName: product.name,
-      status: 'active',
-      amount,
-      currency: product.currency,
-      interval: formData.interval,
-      currentPeriodStart: now.toISOString(),
-      currentPeriodEnd: periodEnd.toISOString(),
-      updatedAt: now.toISOString(),
-    }));
-    
-    toast.success('Subscription created successfully');
-    setIsCreateOpen(false);
-    setFormData({ customerId: '', productId: '', interval: 'month' });
+  const handleEdit = (subscription: Subscription) => {
+    setSheetMode('edit');
+    setEditingSubscription(subscription);
+    setIsSheetOpen(true);
   };
 
   const openAction = (subscription: Subscription, action: 'cancel' | 'pause' | 'resume') => {
@@ -191,21 +154,21 @@ export default function SubscriptionsPage() {
       case 'cancel':
         return {
           title: 'Cancel Subscription',
-          description: `Are you sure you want to cancel the subscription for "${selectedSubscription?.customerName}"? The subscription will remain active until the end of the current billing period.`,
+          description: `Are you sure you want to cancel the subscription for "${selectedSubscription?.customerName}"?`,
           action: 'Cancel Subscription',
           variant: 'destructive' as const,
         };
       case 'pause':
         return {
           title: 'Pause Subscription',
-          description: `Are you sure you want to pause the subscription for "${selectedSubscription?.customerName}"? Billing will be paused until you resume.`,
+          description: `Are you sure you want to pause the subscription for "${selectedSubscription?.customerName}"?`,
           action: 'Pause Subscription',
           variant: 'default' as const,
         };
       case 'resume':
         return {
           title: 'Resume Subscription',
-          description: `Are you sure you want to resume the subscription for "${selectedSubscription?.customerName}"? Billing will resume immediately.`,
+          description: `Are you sure you want to resume the subscription for "${selectedSubscription?.customerName}"?`,
           action: 'Resume Subscription',
           variant: 'default' as const,
         };
@@ -216,12 +179,6 @@ export default function SubscriptionsPage() {
 
   const dialogContent = getActionDialogContent();
 
-  const selectedProduct = products.find(p => p.id === formData.productId);
-  const estimatedAmount = selectedProduct 
-    ? (formData.interval === 'year' ? selectedProduct.price * 12 : selectedProduct.price)
-    : 0;
-
-  // Mobile card view for subscriptions
   const MobileSubscriptionCard = ({ subscription }: { subscription: Subscription }) => (
     <div 
       className="p-4 border-b last:border-b-0 cursor-pointer hover:bg-muted/50 transition-colors"
@@ -234,7 +191,9 @@ export default function SubscriptionsPage() {
           </div>
           <div className="min-w-0 flex-1">
             <p className="font-medium text-foreground truncate">{subscription.customerName}</p>
-            <p className="text-sm text-muted-foreground truncate">{subscription.productName}</p>
+            <p className="text-sm text-muted-foreground truncate">
+              {subscription.items?.length || 1} item(s)
+            </p>
           </div>
         </div>
         <Badge variant="outline" className={`${getStatusColor(subscription.status)} flex-shrink-0`}>
@@ -243,7 +202,7 @@ export default function SubscriptionsPage() {
       </div>
       <div className="mt-3 flex items-center justify-between text-sm">
         <span className="font-medium">
-          {formatCurrency(subscription.amount, subscription.currency)}/{subscription.interval}
+          {formatCurrency(subscription.amount, subscription.currency)}/{getIntervalLabel(subscription.intervalCount, subscription.interval)}
         </span>
         <div className="flex items-center gap-1 text-muted-foreground">
           <Calendar className="h-3 w-3" />
@@ -262,7 +221,7 @@ export default function SubscriptionsPage() {
           <h1 className="text-xl sm:text-2xl font-bold text-foreground">Subscriptions</h1>
           <p className="text-sm sm:text-base text-muted-foreground">Manage recurring billing for your customers</p>
         </div>
-        <Button onClick={() => setIsCreateOpen(true)} className="w-full sm:w-auto">
+        <Button onClick={handleCreate} className="w-full sm:w-auto">
           <Plus className="mr-2 h-4 w-4" />
           New Subscription
         </Button>
@@ -298,30 +257,26 @@ export default function SubscriptionsPage() {
                     <Skeleton className="h-4 w-48" />
                     <Skeleton className="h-3 w-32" />
                   </div>
-                  <Skeleton className="h-6 w-16" />
-                  <Skeleton className="h-8 w-8" />
                 </div>
               ))}
             </div>
           ) : (
             <>
-              {/* Mobile View */}
               <div className="sm:hidden">
                 {filteredSubscriptions.map((subscription) => (
                   <MobileSubscriptionCard key={subscription.id} subscription={subscription} />
                 ))}
               </div>
 
-              {/* Desktop View */}
               <div className="hidden sm:block overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Customer</TableHead>
-                      <TableHead>Product</TableHead>
+                      <TableHead>Products</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Amount</TableHead>
-                      <TableHead className="hidden lg:table-cell">Current Period</TableHead>
+                      <TableHead className="hidden lg:table-cell">Billing</TableHead>
                       <TableHead className="w-12"></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -346,7 +301,9 @@ export default function SubscriptionsPage() {
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <CreditCard className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                            <span className="truncate max-w-[150px]">{subscription.productName}</span>
+                            <span className="truncate max-w-[150px]">
+                              {subscription.items?.length || 1} item(s)
+                            </span>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -358,13 +315,11 @@ export default function SubscriptionsPage() {
                           <span className="font-medium whitespace-nowrap">
                             {formatCurrency(subscription.amount, subscription.currency)}
                           </span>
-                          <span className="text-muted-foreground">/{subscription.interval}</span>
                         </TableCell>
                         <TableCell className="hidden lg:table-cell">
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground whitespace-nowrap">
-                            <Calendar className="h-3 w-3 flex-shrink-0" />
-                            {format(new Date(subscription.currentPeriodStart), 'MMM d')} - {format(new Date(subscription.currentPeriodEnd), 'MMM d, yyyy')}
-                          </div>
+                          <span className="text-sm text-muted-foreground">
+                            Every {getIntervalLabel(subscription.intervalCount, subscription.interval)}
+                          </span>
                         </TableCell>
                         <TableCell onClick={(e) => e.stopPropagation()}>
                           <DropdownMenu>
@@ -377,6 +332,10 @@ export default function SubscriptionsPage() {
                               <DropdownMenuItem onClick={() => navigate(`/subscriptions/${subscription.id}`)}>
                                 <Eye className="mr-2 h-4 w-4" />
                                 View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEdit(subscription)}>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Edit
                               </DropdownMenuItem>
                               {subscription.status === 'active' && (
                                 <>
@@ -421,103 +380,13 @@ export default function SubscriptionsPage() {
         </CardContent>
       </Card>
 
-      {/* Create Subscription Dialog */}
-      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="max-w-[90vw] sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Create New Subscription</DialogTitle>
-            <DialogDescription>Set up a recurring subscription for a customer.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="customer">Customer</Label>
-              <Select
-                value={formData.customerId}
-                onValueChange={(value) => setFormData({ ...formData, customerId: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a customer" />
-                </SelectTrigger>
-                <SelectContent>
-                  {customers.map((customer) => (
-                    <SelectItem key={customer.id} value={customer.id}>
-                      <div className="flex flex-col">
-                        <span>{customer.name}</span>
-                        <span className="text-xs text-muted-foreground">{customer.email}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="product">Product</Label>
-              <Select
-                value={formData.productId}
-                onValueChange={(value) => setFormData({ ...formData, productId: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a product" />
-                </SelectTrigger>
-                <SelectContent>
-                  {products.filter(p => p.active).map((product) => (
-                    <SelectItem key={product.id} value={product.id}>
-                      <div className="flex items-center justify-between gap-4 w-full">
-                        <span>{product.name}</span>
-                        <span className="text-muted-foreground">{formatCurrency(product.price, product.currency)}/mo</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="interval">Billing Interval</Label>
-              <Select
-                value={formData.interval}
-                onValueChange={(value: 'month' | 'year') => setFormData({ ...formData, interval: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="month">Monthly</SelectItem>
-                  <SelectItem value="year">Yearly (12 months)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            {selectedProduct && (
-              <div className="p-4 rounded-lg bg-muted/50 space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Product</span>
-                  <span className="font-medium">{selectedProduct.name}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Billing</span>
-                  <span className="font-medium">{formData.interval === 'month' ? 'Monthly' : 'Yearly'}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Amount</span>
-                  <span className="text-lg font-bold">
-                    {formatCurrency(estimatedAmount, selectedProduct.currency)}/{formData.interval}
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
-          <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button variant="outline" onClick={() => setIsCreateOpen(false)} className="w-full sm:w-auto">Cancel</Button>
-            <Button 
-              onClick={handleCreate} 
-              disabled={!formData.customerId || !formData.productId}
-              className="w-full sm:w-auto"
-            >
-              Create Subscription
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Subscription Sheet */}
+      <SubscriptionSheet
+        open={isSheetOpen}
+        onOpenChange={setIsSheetOpen}
+        subscription={editingSubscription}
+        mode={sheetMode}
+      />
 
       {/* Action Confirmation Dialog */}
       <AlertDialog open={!!actionType} onOpenChange={() => setActionType(null)}>
