@@ -106,6 +106,7 @@ const mockCustomers: Customer[] = [
 
 const mockProducts: Product[] = [
   {
+    workspaceId: "",
     productId: "prod_1",
     name: "Starter Plan",
     description: "Perfect for small teams getting started",
@@ -116,6 +117,7 @@ const mockProducts: Product[] = [
     productCategory: "Subscription",
   },
   {
+    workspaceId: "",
     productId: "prod_2",
     name: "Professional Plan",
     description: "For growing businesses with advanced needs",
@@ -126,6 +128,7 @@ const mockProducts: Product[] = [
     productCategory: "Subscription",
   },
   {
+    workspaceId: "",
     productId: "prod_3",
     name: "Enterprise Plan",
     description: "Full-featured solution for large organizations",
@@ -136,6 +139,7 @@ const mockProducts: Product[] = [
     productCategory: "Subscription",
   },
   {
+    workspaceId: "",
     productId: "prod_4",
     name: "API Access",
     description: "Programmatic access to all features",
@@ -146,6 +150,7 @@ const mockProducts: Product[] = [
     productCategory: "Add-on",
   },
   {
+    workspaceId: "",
     productId: "prod_5",
     name: "Priority Support",
     description: "24/7 dedicated support channel",
@@ -579,10 +584,7 @@ export const authApi = {
    * POST /api/auth/login
    * Login with email and password
    */
-  login: async (
-    email: string,
-    password: string
-  ): Promise<ApiResponse<User>> => {
+  login: async (email: string, password: string): Promise<ApiResponse<any>> => {
     const res = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
       method: "POST",
       headers: {
@@ -600,15 +602,15 @@ export const authApi = {
     }
 
     const data = await res.json();
-    console.log(data);
     return {
       success: true,
       data: {
-        id: data.id,
+        id: data.userId,
         email: data.email,
         name: data.firstName + " " + data.lastName,
         emailVerified: data.emailVerified,
         createdAt: data.createdAt,
+        workspaceId: data.workspaceId,
       },
     };
   },
@@ -637,18 +639,36 @@ export const authApi = {
    */
   signup: async (
     email: string,
-    _password: string,
-    name: string
-  ): Promise<ApiResponse<User>> => {
-    await delay(MOCK_DELAY);
+    password: string,
+    name: string,
+  ): Promise<ApiResponse<any>> => {
+    const res = await fetch(`${API_BASE_URL}/api/v1/auth/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email,
+        password,
+        firstName: name.split(" ")[0],
+        lastName: name.split(" ")[1],
+      }),
+    });
+
+    if (!res.ok) {
+      throw new Error("Signup failed");
+    }
+
+    const data = await res.json();
     return {
       success: true,
       data: {
-        id: crypto.randomUUID(),
-        email,
-        name,
-        emailVerified: false,
-        createdAt: new Date().toISOString(),
+        id: data.userId,
+        email: data.email,
+        name: data.firstName + " " + data.lastName,
+        emailVerified: data.emailVerified,
+        createdAt: data.createdAt,
+        workspaceId: data.workspaceId,
       },
       message: "Verification email sent!",
     };
@@ -706,9 +726,14 @@ export const authApi = {
    * GET /api/auth/me
    * Get current user
    */
-  getCurrentUser: async (): Promise<ApiResponse<User | null>> => {
-    await delay(MOCK_DELAY);
-    return { success: true, data: null };
+  getCurrentUser: async (): Promise<ApiResponse<any>> => {
+    const res = await fetch(`${API_BASE_URL}/api/v1/users/me`, {
+      method: "GET",
+      credentials: "include",
+    });
+
+    if (!res.ok) throw new Error("UNAUTHORIZED");
+    return await res.json();
   },
 };
 
@@ -722,28 +747,28 @@ export const customersApi = {
    */
   getAll: async (
     page = 1,
-    pageSize = 10
+    pageSize = 10,
+    workspaceId: string,
   ): Promise<PaginatedResponse<Customer>> => {
-  
     const res = await fetch(
-      `${API_BASE_URL}/api/v1/workspaces/ws_main/clients?page=${page - 1}&size=${pageSize}`,
+      `${API_BASE_URL}/api/v1/workspaces/${workspaceId}/clients?page=${page - 1}&size=${pageSize}`,
       {
         method: "GET",
         credentials: "include", // 🔥 required for cookies/JWT
-      }
+      },
     );
-  
+
     if (!res.ok) {
       const err = await res.text();
       throw new Error(`Fetch clients failed (${res.status}): ${err}`);
     }
-  
+
     const data = await res.json();
-  
+
     return {
-      data: data.content,          // list of customers
-      total: data.totalElements,   // total records
-      page: data.number + 1,       // backend is 0-based
+      data: data.content, // list of customers
+      total: data.totalElements, // total records
+      page: data.number + 1, // backend is 0-based
       pageSize: data.size,
       totalPages: data.totalPages,
     };
@@ -769,11 +794,13 @@ export const customersApi = {
    * POST /api/customers
    */
   create: async (
-    d: Omit<CreateCustomerRequest, "id" | "createdAt" | "totalSpent" | "subscriptions">
+    d: Omit<
+      CreateCustomerRequest,
+      "id" | "createdAt" | "totalSpent" | "subscriptions"
+    >,
   ): Promise<ApiResponse<Customer>> => {
-  
     const res = await fetch(
-      `${API_BASE_URL}/api/v1/workspaces/ws_main/clients`,
+      `${API_BASE_URL}/api/v1/workspaces/${d.workspaceId}/clients`,
       {
         method: "POST",
         headers: {
@@ -784,18 +811,21 @@ export const customersApi = {
           name: d.name,
           email: d.email,
           contactNumber: d.contactNumber,
+          companyName: d.companyName,
+          countryCode: d.countryCode,
+          taxId: d.taxId,
           billingAddress: d.billingAddress,
         }),
-      }
+      },
     );
-  
+
     if (!res.ok) {
       const err = await res.text();
       throw new Error(`Create client failed (${res.status}): ${err}`);
     }
-  
+
     const data = await res.json();
-  
+
     return {
       success: true,
       data: {
@@ -807,25 +837,48 @@ export const customersApi = {
       },
     };
   },
-  
 
   /**
    * PUT /api/customers/:id
    */
   update: async (
     id: string,
-    data: Partial<Customer>
+    d: Partial<Customer>,
   ): Promise<ApiResponse<Customer>> => {
-    await delay(MOCK_DELAY);
-    const customer = mockCustomers.find((c) => c.clientId === id);
-    if (!customer) {
-      return {
-        success: false,
-        data: null as any,
-        message: "Customer not found",
-      };
+    console.log("update", d);
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/workspaces/${d.workspaceId}/clients/${id}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          name: d.name,
+          email: d.email,
+          contactNumber: d.contactNumber,
+          companyName: d.companyName,
+          countryCode: d.countryCode,
+          taxId: d.taxId,
+          billingAddress: d.billingAddress,
+        }),
+      },
+    );
+
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Create client failed (${res.status}): ${err}`);
     }
-    return { success: true, data: { ...customer, ...data } };
+
+    const data = await res.json();
+    console.log(data);
+    return {
+      success: true,
+      data: {
+        ...data,
+      },
+    };
   },
 
   /**
@@ -847,15 +900,15 @@ export const productsApi = {
    */
   getAll: async (
     page = 1,
-    pageSize = 10
+    pageSize = 10,
+    workspaceId: string,
   ): Promise<PaginatedResponse<Product>> => {
-
     const res = await fetch(
-      `${API_BASE_URL}/api/v1/workspaces/ws_main/products?page=${page - 1}&size=${pageSize}`,
+      `${API_BASE_URL}/api/v1/workspaces/${workspaceId}/products?&page=${page - 1}&size=${pageSize}`,
       {
         method: "GET",
-        credentials: "include", // 🔥 required for auth (cookies/JWT)
-      }
+        credentials: "include",
+      },
     );
 
     if (!res.ok) {
@@ -866,9 +919,9 @@ export const productsApi = {
     const data = await res.json();
 
     return {
-      data: data.content,          // Spring Page<Product>
+      data: data.content, // Spring Page<Product>
       total: data.totalElements,
-      page: data.number + 1,       // convert back to 1-based
+      page: data.number + 1, // convert back to 1-based
       pageSize: data.size,
       totalPages: data.totalPages,
     };
@@ -894,25 +947,27 @@ export const productsApi = {
    * POST /api/products
    */
   create: async (
-    data: Omit<CreateProductRequest, "id" | "createdAt">
+    data: Omit<CreateProductRequest, "id" | "createdAt">,
   ): Promise<ApiResponse<Product>> => {
-  
-    const res = await fetch(`${API_BASE_URL}/api/v1/workspaces/ws_main/products`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/workspaces/${data.workspaceId}/products`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(data),
       },
-      credentials: "include", // 🔥 REQUIRED (cookies/JWT)
-      body: JSON.stringify(data),
-    });
-  
+    );
+
     if (!res.ok) {
       const err = await res.text();
       throw new Error(`Create product failed (${res.status}): ${err}`);
     }
-  
+
     const product: Product = await res.json();
-  
+
     return {
       success: true,
       data: product,
@@ -924,18 +979,32 @@ export const productsApi = {
    */
   update: async (
     id: string,
-    data: Partial<Product>
+    data: Partial<Product>,
   ): Promise<ApiResponse<Product>> => {
-    await delay(MOCK_DELAY);
-    const product = mockProducts.find((p) => p.productId === id);
-    if (!product) {
-      return {
-        success: false,
-        data: null as any,
-        message: "Product not found",
-      };
+    console.log(data);
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/workspaces/${data.workspaceId}/products/${id}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(data),
+      },
+    );
+
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Create product failed (${res.status}): ${err}`);
     }
-    return { success: true, data: { ...product, ...data } };
+
+    const product: Product = await res.json();
+
+    return {
+      success: true,
+      data: product,
+    };
   },
 
   /**
@@ -957,17 +1026,30 @@ export const subscriptionsApi = {
    */
   getAll: async (
     page = 1,
-    pageSize = 10
+    pageSize = 10,
+    workspaceId: string,
   ): Promise<PaginatedResponse<Subscription>> => {
-    await delay(MOCK_DELAY);
-    const start = (page - 1) * pageSize;
-    const paginatedData = mockSubscriptions.slice(start, start + pageSize);
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/workspaces/${workspaceId}/subscriptions?&page=${page - 1}&size=${pageSize}`,
+      {
+        method: "GET",
+        credentials: "include",
+      },
+    );
+
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Fetch subscriptions failed (${res.status}): ${err}`);
+    }
+
+    const data = await res.json();
+
     return {
-      data: paginatedData,
-      total: mockSubscriptions.length,
-      page,
-      pageSize,
-      totalPages: Math.ceil(mockSubscriptions.length / pageSize),
+      data: data.content,
+      total: data.totalElements,
+      page: data.number + 1, // convert back to 1-based
+      pageSize: data.size,
+      totalPages: data.totalPages,
     };
   },
 
@@ -991,7 +1073,7 @@ export const subscriptionsApi = {
    * POST /api/subscriptions
    */
   create: async (
-    data: Omit<Subscription, "id" | "createdAt">
+    data: Omit<Subscription, "id" | "createdAt">,
   ): Promise<ApiResponse<Subscription>> => {
     await delay(MOCK_DELAY);
     const newSubscription: Subscription = {
@@ -1007,7 +1089,7 @@ export const subscriptionsApi = {
    */
   update: async (
     id: string,
-    data: Partial<Subscription>
+    data: Partial<Subscription>,
   ): Promise<ApiResponse<Subscription>> => {
     await delay(MOCK_DELAY);
     const subscription = mockSubscriptions.find((s) => s.id === id);
@@ -1080,7 +1162,7 @@ export const invoicesApi = {
    */
   getAll: async (
     page = 1,
-    pageSize = 10
+    pageSize = 10,
   ): Promise<PaginatedResponse<Invoice>> => {
     await delay(MOCK_DELAY);
     const start = (page - 1) * pageSize;
@@ -1114,7 +1196,7 @@ export const invoicesApi = {
    * POST /api/invoices
    */
   create: async (
-    data: Omit<Invoice, "id" | "createdAt">
+    data: Omit<Invoice, "id" | "createdAt">,
   ): Promise<ApiResponse<Invoice>> => {
     await delay(MOCK_DELAY);
     const newInvoice: Invoice = {
@@ -1130,7 +1212,7 @@ export const invoicesApi = {
    */
   update: async (
     id: string,
-    data: Partial<Invoice>
+    data: Partial<Invoice>,
   ): Promise<ApiResponse<Invoice>> => {
     await delay(MOCK_DELAY);
     const invoice = mockInvoices.find((i) => i.id === id);
@@ -1262,7 +1344,9 @@ export const taxesApi = {
   /**
    * POST /api/taxes
    */
-  create: async (data: Omit<Tax, 'id' | 'createdAt'>): Promise<ApiResponse<Tax>> => {
+  create: async (
+    data: Omit<Tax, "id" | "createdAt">,
+  ): Promise<ApiResponse<Tax>> => {
     await delay(MOCK_DELAY);
     const newTax: Tax = {
       ...data,
@@ -1279,7 +1363,7 @@ export const taxesApi = {
     await delay(MOCK_DELAY);
     const tax = mockTaxes.find((t) => t.id === id);
     if (!tax) {
-      return { success: false, data: null as any, message: 'Tax not found' };
+      return { success: false, data: null as any, message: "Tax not found" };
     }
     return { success: true, data: { ...tax, ...data } };
   },
@@ -1289,7 +1373,7 @@ export const taxesApi = {
    */
   delete: async (id: string): Promise<ApiResponse<null>> => {
     await delay(MOCK_DELAY);
-    return { success: true, data: null, message: 'Tax deleted' };
+    return { success: true, data: null, message: "Tax deleted" };
   },
 };
 

@@ -1,9 +1,10 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import type { User, AuthState } from '@/types';
-import { authApi } from '@/services/api';
+import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
+import type { AuthState } from "@/types";
+import { authApi } from "@/services/api";
 
 const initialState: AuthState = {
   user: null,
+  workspaceId: "",
   isAuthenticated: false,
   isLoading: false,
   error: null,
@@ -11,111 +12,130 @@ const initialState: AuthState = {
 
 // Async thunks
 export const login = createAsyncThunk(
-  'auth/login',
-  async ({ email, password }: { email: string; password: string }, { rejectWithValue }) => {
+  "auth/login",
+  async (
+    { email, password }: { email: string; password: string },
+    { rejectWithValue },
+  ) => {
     try {
       const response = await authApi.login(email, password);
       if (!response.success) {
-        return rejectWithValue(response.message || 'Login failed');
+        return rejectWithValue(response.message || "Login failed");
       }
       return response.data;
     } catch (error: any) {
-      return rejectWithValue(error.message || 'Login failed');
+      return rejectWithValue(error.message || "Login failed");
     }
-  }
+  },
 );
 
 export const loginWithGoogle = createAsyncThunk(
-  'auth/loginWithGoogle',
+  "auth/loginWithGoogle",
   async (_, { rejectWithValue }) => {
     try {
       const response = await authApi.loginWithGoogle();
       if (!response.success) {
-        return rejectWithValue(response.message || 'Google login failed');
+        return rejectWithValue(response.message || "Google login failed");
       }
       return response.data;
     } catch (error: any) {
-      return rejectWithValue(error.message || 'Google login failed');
+      return rejectWithValue(error.message || "Google login failed");
     }
-  }
+  },
 );
 
 export const signup = createAsyncThunk(
-  'auth/signup',
-  async ({ email, password, name }: { email: string; password: string; name: string }, { rejectWithValue }) => {
+  "auth/signup",
+  async (
+    {
+      email,
+      password,
+      name,
+    }: { email: string; password: string; name: string },
+    { rejectWithValue },
+  ) => {
     try {
       const response = await authApi.signup(email, password, name);
       if (!response.success) {
-        return rejectWithValue(response.message || 'Signup failed');
+        return rejectWithValue(response.message || "Signup failed");
       }
       return response.data;
     } catch (error: any) {
-      return rejectWithValue(error.message || 'Signup failed');
+      return rejectWithValue(error.message || "Signup failed");
     }
-  }
+  },
 );
 
 export const forgotPassword = createAsyncThunk(
-  'auth/forgotPassword',
+  "auth/forgotPassword",
   async (email: string, { rejectWithValue }) => {
     try {
       const response = await authApi.forgotPassword(email);
       if (!response.success) {
-        return rejectWithValue(response.message || 'Failed to send reset email');
+        return rejectWithValue(
+          response.message || "Failed to send reset email",
+        );
       }
       return response.message;
     } catch (error: any) {
-      return rejectWithValue(error.message || 'Failed to send reset email');
+      return rejectWithValue(error.message || "Failed to send reset email");
     }
-  }
+  },
 );
 
 export const verifyEmail = createAsyncThunk(
-  'auth/verifyEmail',
+  "auth/verifyEmail",
   async (token: string, { rejectWithValue }) => {
     try {
       const response = await authApi.verifyEmail(token);
       if (!response.success) {
-        return rejectWithValue(response.message || 'Email verification failed');
+        return rejectWithValue(response.message || "Email verification failed");
       }
       return response.data;
     } catch (error: any) {
-      return rejectWithValue(error.message || 'Email verification failed');
+      return rejectWithValue(error.message || "Email verification failed");
     }
-  }
+  },
 );
 
 export const resendVerification = createAsyncThunk(
-  'auth/resendVerification',
+  "auth/resendVerification",
   async (email: string, { rejectWithValue }) => {
     try {
       const response = await authApi.resendVerification(email);
       if (!response.success) {
-        return rejectWithValue(response.message || 'Failed to resend verification');
+        return rejectWithValue(
+          response.message || "Failed to resend verification",
+        );
       }
       return response.message;
     } catch (error: any) {
-      return rejectWithValue(error.message || 'Failed to resend verification');
+      return rejectWithValue(error.message || "Failed to resend verification");
     }
-  }
+  },
 );
 
-export const logout = createAsyncThunk('auth/logout', async () => {
+export const logout = createAsyncThunk("auth/logout", async () => {
   await authApi.logout();
 });
 
 const authSlice = createSlice({
-  name: 'auth',
+  name: "auth",
   initialState,
   reducers: {
     clearError: (state) => {
       state.error = null;
     },
-    setUser: (state, action: PayloadAction<User>) => {
-      state.user = action.payload;
-      state.isAuthenticated = true;
+    setUser: (state, action: PayloadAction<AuthState>) => {
+      state.user = action.payload.user;
+      state.workspaceId = action.payload.workspaceId;
+      state.isAuthenticated = action.payload.isAuthenticated;
     },
-    updateProfile: (state, action: PayloadAction<{ name?: string; email?: string }>) => {
+    resetAuth: () => initialState,
+    updateProfile: (
+      state,
+      action: PayloadAction<{ name?: string; email?: string }>,
+    ) => {
       if (state.user) {
         state.user = { ...state.user, ...action.payload };
       }
@@ -209,5 +229,6 @@ const authSlice = createSlice({
   },
 });
 
-export const { clearError, setUser, updateProfile } = authSlice.actions;
+export const { clearError, setUser, resetAuth, updateProfile } =
+  authSlice.actions;
 export default authSlice.reducer;

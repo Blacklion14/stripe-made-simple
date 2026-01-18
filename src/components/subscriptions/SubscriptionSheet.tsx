@@ -1,53 +1,72 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useAppSelector, useAppDispatch } from '@/store';
-import { fetchCustomers } from '@/store/slices/customersSlice';
-import { fetchProducts } from '@/store/slices/productsSlice';
-import { fetchTaxes } from '@/store/slices/taxesSlice';
-import { createSubscription, updateSubscription } from '@/store/slices/subscriptionsSlice';
+import { useState, useEffect, useMemo } from "react";
+import { useAppSelector, useAppDispatch } from "@/store";
+import { fetchTaxes } from "@/store/slices/taxesSlice";
+import {
+  fetchCustomers,
+  setCustomers,
+  setPagination,
+} from "@/store/slices/customersSlice";
+import {
+  fetchProducts,
+  setProductPagination,
+  setProducts,
+} from "@/store/slices/productsSlice";
+import {
+  createSubscription,
+  updateSubscription,
+} from "@/store/slices/subscriptionsSlice";
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
-import { Calendar } from '@/components/ui/calendar';
+} from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover';
-import { 
-  Plus, 
-  Trash2, 
+} from "@/components/ui/popover";
+import {
+  Plus,
+  Trash2,
   Calendar as CalendarIcon,
   User,
   Package,
   Receipt,
-} from 'lucide-react';
-import { format, addDays, addWeeks, addMonths, addYears } from 'date-fns';
-import { toast } from 'sonner';
-import type { Subscription, SubscriptionItem, SubscriptionInterval, Customer, Product, Tax } from '@/types';
-import { cn } from '@/lib/utils';
+} from "lucide-react";
+import { format, addDays, addWeeks, addMonths, addYears } from "date-fns";
+import { toast } from "sonner";
+import type {
+  Subscription,
+  SubscriptionItem,
+  SubscriptionInterval,
+  Customer,
+  Product,
+  Tax,
+} from "@/types";
+import { cn } from "@/lib/utils";
+import { useDispatch } from "react-redux";
 
 interface SubscriptionSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   subscription?: Subscription | null;
-  mode: 'create' | 'edit';
+  mode: "create" | "edit";
 }
 
 interface LineItem {
@@ -57,40 +76,24 @@ interface LineItem {
   taxId: string;
 }
 
-// Dummy data fallback
-const dummyCustomers: Customer[] = [
-  { clientId: 'cus_1', name: 'Acme Corp', email: 'billing@acme.com', workspaceId: 'ws_main', totalSpent: 15000, subscriptions: 2 },
-  { clientId: 'cus_2', name: 'TechStart Inc', email: 'finance@techstart.io', workspaceId: 'ws_main', totalSpent: 8500, subscriptions: 1 },
-  { clientId: 'cus_3', name: 'Global Solutions', email: 'accounts@globalsol.com', workspaceId: 'ws_main', totalSpent: 25000, subscriptions: 3 },
-];
-
-const dummyProducts: Product[] = [
-  { productId: 'prod_1', name: 'Starter Plan', description: 'For small teams', price: 29, currency: 'USD', active: true, createdAt: '2024-01-01', productCategory: 'Subscription' },
-  { productId: 'prod_2', name: 'Professional Plan', description: 'For growing businesses', price: 99, currency: 'USD', active: true, createdAt: '2024-01-01', productCategory: 'Subscription' },
-  { productId: 'prod_3', name: 'Enterprise Plan', description: 'For large organizations', price: 299, currency: 'USD', active: true, createdAt: '2024-01-01', productCategory: 'Subscription' },
-  { productId: 'prod_4', name: 'API Access', description: 'API add-on', price: 49, currency: 'USD', active: true, createdAt: '2024-01-05', productCategory: 'Add-on' },
-];
-
-const dummyTaxes: Tax[] = [
-  { id: 'tax_1', name: 'GST', rate: 18, description: 'Goods and Services Tax', active: true, createdAt: '2024-01-01' },
-  { id: 'tax_2', name: 'VAT', rate: 20, description: 'Value Added Tax', active: true, createdAt: '2024-01-01' },
-  { id: 'tax_3', name: 'Sales Tax', rate: 8.5, description: 'State Sales Tax', active: true, createdAt: '2024-01-01' },
-];
-
-export function SubscriptionSheet({ open, onOpenChange, subscription, mode }: SubscriptionSheetProps) {
+export function SubscriptionSheet({
+  open,
+  onOpenChange,
+  subscription,
+  mode,
+}: SubscriptionSheetProps) {
   const dispatch = useAppDispatch();
-  const reduxCustomers = useAppSelector((state) => state.customers.customers);
-  const reduxProducts = useAppSelector((state) => state.products.products);
-  const reduxTaxes = useAppSelector((state) => state.taxes.taxes);
+  const dispatchState = useDispatch();
+  const customers = useAppSelector((state) => state.customers.customers);
+  const products = useAppSelector((state) => state.products.products);
+  const taxes = useAppSelector((state) => state.taxes.taxes);
 
   // Use Redux data if available, otherwise use dummy data
-  const customers = reduxCustomers.length > 0 ? reduxCustomers : dummyCustomers;
-  const products = reduxProducts.length > 0 ? reduxProducts : dummyProducts;
-  const taxes = reduxTaxes.length > 0 ? reduxTaxes : dummyTaxes;
-
-  const [customerId, setCustomerId] = useState('');
+  const workspaceId = useAppSelector((state) => state.auth.workspaceId);
+  const [customerId, setCustomerId] = useState("");
+  const [selectedProductId, setSelectedProductId] = useState("");
   const [intervalCount, setIntervalCount] = useState(1);
-  const [interval, setInterval] = useState<SubscriptionInterval>('month');
+  const [interval, setInterval] = useState<SubscriptionInterval>("month");
   const [startDate, setStartDate] = useState<Date>(new Date());
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -98,15 +101,52 @@ export function SubscriptionSheet({ open, onOpenChange, subscription, mode }: Su
   // Load data on mount - try to fetch but fallback to dummy
   useEffect(() => {
     if (open) {
-      dispatch(fetchCustomers({}));
-      dispatch(fetchProducts({}));
-      dispatch(fetchTaxes());
+      async function fetchProdData() {
+        const result = await dispatch(fetchProducts({ workspaceId }));
+        if (fetchProducts.fulfilled.match(result)) {
+          const products: Product[] = [];
+          const pagination = {
+            page: result.payload.page,
+            pageSize: result.payload.pageSize,
+            total: result.payload.total,
+            totalPages: result.payload.totalPages,
+          };
+
+          result.payload.data.forEach((c: Product) => {
+            products.push(c);
+          });
+
+          dispatchState(setProducts(products));
+          dispatchState(setProductPagination(pagination));
+        }
+      }
+      async function fetchCusData() {
+        const result = await dispatch(fetchCustomers({ workspaceId }));
+        if (fetchCustomers.fulfilled.match(result)) {
+          const customers: Customer[] = [];
+          const pagination = {
+            page: result.payload.page,
+            pageSize: result.payload.pageSize,
+            total: result.payload.total,
+            totalPages: result.payload.totalPages,
+          };
+
+          result.payload.data.forEach((c: Customer) => {
+            customers.push(c);
+          });
+
+          dispatchState(setCustomers(customers));
+          dispatchState(setPagination(pagination));
+        }
+      }
+      fetchProdData();
+      fetchCusData();
     }
   }, [open, dispatch]);
 
   // Initialize form when editing
   useEffect(() => {
-    if (mode === 'edit' && subscription) {
+    if (mode === "edit" && subscription) {
       setCustomerId(subscription.customerId);
       setIntervalCount(subscription.intervalCount);
       setInterval(subscription.interval);
@@ -116,18 +156,18 @@ export function SubscriptionSheet({ open, onOpenChange, subscription, mode }: Su
           id: item.id,
           productId: item.productId,
           quantity: item.quantity,
-          taxId: item.taxId || '',
-        }))
+          taxId: item.taxId || "",
+        })),
       );
-    } else if (mode === 'create') {
+    } else if (mode === "create") {
       resetForm();
     }
   }, [mode, subscription, open]);
 
   const resetForm = () => {
-    setCustomerId('');
+    setCustomerId("");
     setIntervalCount(1);
-    setInterval('month');
+    setInterval("month");
     setStartDate(new Date());
     setLineItems([]);
   };
@@ -137,18 +177,22 @@ export function SubscriptionSheet({ open, onOpenChange, subscription, mode }: Su
       ...lineItems,
       {
         id: `li_${crypto.randomUUID().slice(0, 8)}`,
-        productId: '',
+        productId: "",
         quantity: 1,
-        taxId: '',
+        taxId: "",
       },
     ]);
   };
 
-  const updateLineItem = (id: string, field: keyof LineItem, value: string | number) => {
+  const updateLineItem = (
+    id: string,
+    field: keyof LineItem,
+    value: string | number,
+  ) => {
     setLineItems(
       lineItems.map((item) =>
-        item.id === id ? { ...item, [field]: value } : item
-      )
+        item.id === id ? { ...item, [field]: value } : item,
+      ),
     );
   };
 
@@ -166,7 +210,7 @@ export function SubscriptionSheet({ open, onOpenChange, subscription, mode }: Su
       .map((li) => {
         const product = products.find((p) => p.productId === li.productId);
         const tax = taxes.find((t) => t.id === li.taxId);
-        
+
         if (!product) {
           return null;
         }
@@ -202,15 +246,19 @@ export function SubscriptionSheet({ open, onOpenChange, subscription, mode }: Su
     };
   }, [lineItems, products, taxes]);
 
-  const calculatePeriodEnd = (start: Date, count: number, intervalType: SubscriptionInterval): Date => {
+  const calculatePeriodEnd = (
+    start: Date,
+    count: number,
+    intervalType: SubscriptionInterval,
+  ): Date => {
     switch (intervalType) {
-      case 'day':
+      case "day":
         return addDays(start, count);
-      case 'week':
+      case "week":
         return addWeeks(start, count);
-      case 'month':
+      case "month":
         return addMonths(start, count);
-      case 'year':
+      case "year":
         return addYears(start, count);
       default:
         return addMonths(start, count);
@@ -219,11 +267,11 @@ export function SubscriptionSheet({ open, onOpenChange, subscription, mode }: Su
 
   const handleSubmit = async () => {
     if (!customerId) {
-      toast.error('Please select a customer');
+      toast.error("Please select a customer");
       return;
     }
     if (lineItems.length === 0 || calculations.items.length === 0) {
-      toast.error('Please add at least one product');
+      toast.error("Please add at least one product");
       return;
     }
 
@@ -232,16 +280,17 @@ export function SubscriptionSheet({ open, onOpenChange, subscription, mode }: Su
     try {
       const customer = customers.find((c) => c.clientId === customerId);
       if (!customer) {
-        toast.error('Customer not found');
+        toast.error("Customer not found");
         return;
       }
 
       const periodEnd = calculatePeriodEnd(startDate, intervalCount, interval);
-      
+
       // Generate product name summary
-      const productName = calculations.items.length === 1
-        ? calculations.items[0].productName
-        : `${calculations.items[0].productName} + ${calculations.items.length - 1} more`;
+      const productName =
+        calculations.items.length === 1
+          ? calculations.items[0].productName
+          : `${calculations.items[0].productName} + ${calculations.items.length - 1} more`;
 
       const subscriptionData = {
         customerId: customer.clientId,
@@ -250,11 +299,11 @@ export function SubscriptionSheet({ open, onOpenChange, subscription, mode }: Su
         productId: calculations.items[0]?.productId,
         productName,
         items: calculations.items,
-        status: 'active' as const,
+        status: "active" as const,
         amount: calculations.total,
         subtotal: calculations.subtotal,
         taxTotal: calculations.taxTotal,
-        currency: 'USD',
+        currency: "USD",
         intervalCount,
         interval,
         startDate: startDate.toISOString(),
@@ -263,29 +312,31 @@ export function SubscriptionSheet({ open, onOpenChange, subscription, mode }: Su
         updatedAt: new Date().toISOString(),
       };
 
-      if (mode === 'create') {
+      if (mode === "create") {
         await dispatch(createSubscription(subscriptionData));
-        toast.success('Subscription created successfully');
+        toast.success("Subscription created successfully");
       } else if (subscription) {
-        await dispatch(updateSubscription({ 
-          id: subscription.id, 
-          data: subscriptionData 
-        }));
-        toast.success('Subscription updated successfully');
+        await dispatch(
+          updateSubscription({
+            id: subscription.id,
+            data: subscriptionData,
+          }),
+        );
+        toast.success("Subscription updated successfully");
       }
 
       onOpenChange(false);
       resetForm();
     } catch (error) {
-      toast.error('Failed to save subscription');
+      toast.error("Failed to save subscription");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const formatCurrency = (amount: number, currency: string = 'USD') => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
+  const formatCurrency = (amount: number, currency: string = "USD") => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
       currency,
       minimumFractionDigits: 2,
     }).format(amount);
@@ -301,12 +352,12 @@ export function SubscriptionSheet({ open, onOpenChange, subscription, mode }: Su
       <SheetContent className="w-full sm:max-w-xl overflow-hidden flex flex-col">
         <SheetHeader>
           <SheetTitle>
-            {mode === 'create' ? 'Create Subscription' : 'Update Subscription'}
+            {mode === "create" ? "Create Subscription" : "Update Subscription"}
           </SheetTitle>
           <SheetDescription>
-            {mode === 'create'
-              ? 'Set up a new recurring subscription for a customer.'
-              : 'Modify the subscription details, products, or billing interval.'}
+            {mode === "create"
+              ? "Set up a new recurring subscription for a customer."
+              : "Modify the subscription details, products, or billing interval."}
           </SheetDescription>
         </SheetHeader>
 
@@ -318,13 +369,20 @@ export function SubscriptionSheet({ open, onOpenChange, subscription, mode }: Su
                 <User className="h-4 w-4" />
                 Customer
               </Label>
-              <Select value={customerId} onValueChange={setCustomerId} disabled={mode === 'edit'}>
+              <Select
+                value={customerId}
+                onValueChange={setCustomerId}
+                disabled={mode === "edit"}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a customer" />
                 </SelectTrigger>
                 <SelectContent>
                   {customers.map((customer) => (
-                    <SelectItem key={customer.clientId} value={customer.clientId}>
+                    <SelectItem
+                      key={customer.clientId}
+                      value={customer.clientId}
+                    >
                       {customer.name} ({customer.email})
                     </SelectItem>
                   ))}
@@ -341,17 +399,61 @@ export function SubscriptionSheet({ open, onOpenChange, subscription, mode }: Su
                   <Package className="h-4 w-4" />
                   Products
                 </Label>
-                <Button variant="outline" size="sm" onClick={addLineItem}>
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add Product
-                </Button>
               </div>
+              <Select
+                value={selectedProductId}
+                onValueChange={(productId) => {
+                  // prevent duplicate products
+                  if (lineItems.some((li) => li.productId === productId)) {
+                    toast.error("Product already added");
+                    return;
+                  }
+
+                  setLineItems((prev) => [
+                    ...prev,
+                    {
+                      id: `li_${crypto.randomUUID().slice(0, 8)}`,
+                      productId,
+                      quantity: 1,
+                      taxId: "",
+                    },
+                  ]);
+
+                  setSelectedProductId("");
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Add product" />
+                </SelectTrigger>
+                <SelectContent>
+                  {products
+                    .filter(
+                      (p) =>
+                        p.active &&
+                        !lineItems.some((li) => li.productId === p.productId),
+                    )
+                    .map((product) => (
+                      <SelectItem
+                        key={product.productId}
+                        value={product.productId}
+                      >
+                        {product.name} –{" "}
+                        {/* {formatCurrency(product.price, product.currency)} */}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
 
               {lineItems.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground border border-dashed rounded-lg">
                   <Package className="h-8 w-8 mx-auto mb-2 opacity-50" />
                   <p className="text-sm">No products added yet</p>
-                  <Button variant="ghost" size="sm" onClick={addLineItem} className="mt-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={addLineItem}
+                    className="mt-2"
+                  >
                     Add your first product
                   </Button>
                 </div>
@@ -381,17 +483,28 @@ export function SubscriptionSheet({ open, onOpenChange, subscription, mode }: Su
                           <Label className="text-xs">Product</Label>
                           <Select
                             value={item.productId}
-                            onValueChange={(value) => updateLineItem(item.id, 'productId', value)}
+                            onValueChange={(value) =>
+                              updateLineItem(item.id, "productId", value)
+                            }
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Select product" />
                             </SelectTrigger>
                             <SelectContent>
-                              {products.filter((p) => p.active).map((product) => (
-                                <SelectItem key={product.productId} value={product.productId}>
-                                  {product.name} - {formatCurrency(product.price, product.currency)}
-                                </SelectItem>
-                              ))}
+                              {products
+                                .filter((p) => p.active)
+                                .map((product) => (
+                                  <SelectItem
+                                    key={product.productId}
+                                    value={product.productId}
+                                  >
+                                    {product.name} -{" "}
+                                    {/* {formatCurrency(
+                                      product.price,
+                                      product.currency,
+                                    )} */}
+                                  </SelectItem>
+                                ))}
                             </SelectContent>
                           </Select>
                         </div>
@@ -404,26 +517,38 @@ export function SubscriptionSheet({ open, onOpenChange, subscription, mode }: Su
                               min={1}
                               value={item.quantity}
                               onChange={(e) =>
-                                updateLineItem(item.id, 'quantity', parseInt(e.target.value) || 1)
+                                updateLineItem(
+                                  item.id,
+                                  "quantity",
+                                  parseInt(e.target.value) || 1,
+                                )
                               }
                             />
                           </div>
                           <div className="space-y-1.5">
                             <Label className="text-xs">Tax</Label>
                             <Select
-                              value={item.taxId || 'none'}
-                              onValueChange={(value) => updateLineItem(item.id, 'taxId', value === 'none' ? '' : value)}
+                              value={item.taxId || "none"}
+                              onValueChange={(value) =>
+                                updateLineItem(
+                                  item.id,
+                                  "taxId",
+                                  value === "none" ? "" : value,
+                                )
+                              }
                             >
                               <SelectTrigger>
                                 <SelectValue placeholder="No tax" />
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="none">No tax</SelectItem>
-                                {taxes.filter((t) => t.active).map((tax) => (
-                                  <SelectItem key={tax.id} value={tax.id}>
-                                    {tax.name} ({tax.rate}%)
-                                  </SelectItem>
-                                ))}
+                                {taxes
+                                  .filter((t) => t.active)
+                                  .map((tax) => (
+                                    <SelectItem key={tax.id} value={tax.id}>
+                                      {tax.name} ({tax.rate}%)
+                                    </SelectItem>
+                                  ))}
                               </SelectContent>
                             </Select>
                           </div>
@@ -451,12 +576,19 @@ export function SubscriptionSheet({ open, onOpenChange, subscription, mode }: Su
                     min={1}
                     max={365}
                     value={intervalCount}
-                    onChange={(e) => setIntervalCount(parseInt(e.target.value) || 1)}
+                    onChange={(e) =>
+                      setIntervalCount(parseInt(e.target.value) || 1)
+                    }
                   />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs">Period</Label>
-                  <Select value={interval} onValueChange={(v) => setInterval(v as SubscriptionInterval)}>
+                  <Select
+                    value={interval}
+                    onValueChange={(v) =>
+                      setInterval(v as SubscriptionInterval)
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -470,7 +602,8 @@ export function SubscriptionSheet({ open, onOpenChange, subscription, mode }: Su
                 </div>
               </div>
               <p className="text-sm text-muted-foreground">
-                Billing occurs {getIntervalLabel(intervalCount, interval).toLowerCase()}
+                Billing occurs{" "}
+                {getIntervalLabel(intervalCount, interval).toLowerCase()}
               </p>
             </div>
 
@@ -485,12 +618,12 @@ export function SubscriptionSheet({ open, onOpenChange, subscription, mode }: Su
                   <Button
                     variant="outline"
                     className={cn(
-                      'w-full justify-start text-left font-normal',
-                      !startDate && 'text-muted-foreground'
+                      "w-full justify-start text-left font-normal",
+                      !startDate && "text-muted-foreground",
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {startDate ? format(startDate, 'PPP') : 'Pick a date'}
+                    {startDate ? format(startDate, "PPP") : "Pick a date"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -534,7 +667,10 @@ export function SubscriptionSheet({ open, onOpenChange, subscription, mode }: Su
                     <span>{formatCurrency(calculations.taxTotal)}</span>
                   </div>
                   <div className="flex justify-between font-medium text-base pt-2">
-                    <span>Total {getIntervalLabel(intervalCount, interval).toLowerCase()}</span>
+                    <span>
+                      Total{" "}
+                      {getIntervalLabel(intervalCount, interval).toLowerCase()}
+                    </span>
                     <span>{formatCurrency(calculations.total)}</span>
                   </div>
                 </div>
@@ -554,14 +690,16 @@ export function SubscriptionSheet({ open, onOpenChange, subscription, mode }: Su
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={isSubmitting || !customerId || calculations.items.length === 0}
+            disabled={
+              isSubmitting || !customerId || calculations.items.length === 0
+            }
             className="w-full sm:flex-1"
           >
             {isSubmitting
-              ? 'Saving...'
-              : mode === 'create'
-              ? 'Create Subscription'
-              : 'Update Subscription'}
+              ? "Saving..."
+              : mode === "create"
+                ? "Create Subscription"
+                : "Update Subscription"}
           </Button>
         </div>
       </SheetContent>

@@ -24,37 +24,97 @@ import InvoicesPage from "@/pages/dashboard/InvoicesPage";
 import SettingsPage from "@/pages/dashboard/SettingsPage";
 
 import NotFound from "./pages/NotFound";
+import AuthGuard from "./components/AuthGaurd";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <Provider store={store}>
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="system"
+        enableSystem
+        disableTransitionOnChange
+      >
         <BrowserRouter>
           <TooltipProvider>
             <Toaster />
             <Sonner />
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/" element={<Navigate to="/login" replace />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/signup" element={<SignupPage />} />
-              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-              <Route path="/verify-email" element={<VerifyEmailPage />} />
+            <AuthGuard>
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/" element={<Navigate to="/login" replace />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/signup" element={<SignupPage />} />
+                <Route
+                  path="/forgot-password"
+                  element={<ForgotPasswordPage />}
+                />
+                <Route path="/verify-email" element={<VerifyEmailPage />} />
 
-              {/* Protected Dashboard Routes */}
-              <Route path="/dashboard" element={<DashboardLayout><DashboardPage /></DashboardLayout>} />
-              <Route path="/customers" element={<DashboardLayout><CustomersPage /></DashboardLayout>} />
-              <Route path="/products" element={<DashboardLayout><ProductsPage /></DashboardLayout>} />
-              <Route path="/subscriptions" element={<DashboardLayout><SubscriptionsPage /></DashboardLayout>} />
-              <Route path="/subscriptions/:id" element={<DashboardLayout><SubscriptionDetailPage /></DashboardLayout>} />
-              <Route path="/invoices" element={<DashboardLayout><InvoicesPage /></DashboardLayout>} />
-              <Route path="/settings" element={<DashboardLayout><SettingsPage /></DashboardLayout>} />
+                {/* Protected Dashboard Routes */}
+                <Route
+                  path="/dashboard"
+                  element={
+                    <DashboardLayout>
+                      <DashboardPage />
+                    </DashboardLayout>
+                  }
+                />
+                <Route
+                  path="/customers"
+                  element={
+                    <DashboardLayout>
+                      <CustomersPage />
+                    </DashboardLayout>
+                  }
+                />
+                <Route
+                  path="/products"
+                  element={
+                    <DashboardLayout>
+                      <ProductsPage />
+                    </DashboardLayout>
+                  }
+                />
+                <Route
+                  path="/subscriptions"
+                  element={
+                    <DashboardLayout>
+                      <SubscriptionsPage />
+                    </DashboardLayout>
+                  }
+                />
+                <Route
+                  path="/subscriptions/:id"
+                  element={
+                    <DashboardLayout>
+                      <SubscriptionDetailPage />
+                    </DashboardLayout>
+                  }
+                />
+                <Route
+                  path="/invoices"
+                  element={
+                    <DashboardLayout>
+                      <InvoicesPage />
+                    </DashboardLayout>
+                  }
+                />
+                <Route
+                  path="/settings"
+                  element={
+                    <DashboardLayout>
+                      <SettingsPage />
+                    </DashboardLayout>
+                  }
+                />
 
-              {/* 404 */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+                {/* 404 */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </AuthGuard>
           </TooltipProvider>
         </BrowserRouter>
       </ThemeProvider>

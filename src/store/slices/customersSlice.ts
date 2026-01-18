@@ -1,7 +1,7 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import type { Customer, PaginatedResponse } from '@/types';
-import { customersApi } from '@/services/api';
-import { CreateCustomerRequest } from '@/types';
+import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
+import type { Customer, PaginatedResponse, PaginationPayload } from "@/types";
+import { customersApi } from "@/services/api";
+import { CreateCustomerRequest } from "@/types";
 
 /* -------------------- State -------------------- */
 
@@ -10,12 +10,7 @@ interface CustomersState {
   selectedCustomer: Customer | null;
   isLoading: boolean;
   error: string | null;
-  pagination: {
-    page: number;
-    pageSize: number;
-    total: number;
-    totalPages: number;
-  };
+  pagination: PaginationPayload;
 }
 
 const initialState: CustomersState = {
@@ -35,77 +30,78 @@ const initialState: CustomersState = {
 
 // Fetch paginated customers
 export const fetchCustomers = createAsyncThunk(
-  'customers/fetchAll',
+  "customers/fetchAll",
   async (
-    { page = 1, pageSize = 10 }: { page?: number; pageSize?: number } = {},
-    { rejectWithValue }
+    {
+      page = 1,
+      pageSize = 10,
+      workspaceId,
+    }: { page?: number; pageSize?: number; workspaceId: string },
+    { rejectWithValue },
   ) => {
     try {
-      return await customersApi.getAll(page, pageSize);
+      return await customersApi.getAll(page, pageSize, workspaceId);
     } catch (err: any) {
-      return rejectWithValue(err.message ?? 'Failed to fetch customers');
+      return rejectWithValue(err.message ?? "Failed to fetch customers");
     }
-  }
+  },
 );
 
 // Fetch single customer
 export const fetchCustomerById = createAsyncThunk(
-  'customers/fetchById',
+  "customers/fetchById",
   async (clientId: string, { rejectWithValue }) => {
     const response = await customersApi.getById(clientId);
     if (!response.success) {
       return rejectWithValue(response.message);
     }
     return response.data;
-  }
+  },
 );
 
 // Create customer
 export const createCustomer = createAsyncThunk(
-  'customers/create',
-  async (
-    data: CreateCustomerRequest,
-    { rejectWithValue }
-  ) => {
+  "customers/create",
+  async (data: CreateCustomerRequest, { rejectWithValue }) => {
     const response = await customersApi.create(data);
     if (!response.success) {
       return rejectWithValue(response.message);
     }
     return response.data;
-  }
+  },
 );
 
 // Update customer
 export const updateCustomer = createAsyncThunk(
-  'customers/update',
+  "customers/update",
   async (
     { clientId, data }: { clientId: string; data: Partial<Customer> },
-    { rejectWithValue }
+    { rejectWithValue },
   ) => {
     const response = await customersApi.update(clientId, data);
     if (!response.success) {
       return rejectWithValue(response.message);
     }
     return response.data;
-  }
+  },
 );
 
 // Delete customer
 export const deleteCustomer = createAsyncThunk(
-  'customers/delete',
+  "customers/delete",
   async (clientId: string, { rejectWithValue }) => {
     const response = await customersApi.delete(clientId);
     if (!response.success) {
       return rejectWithValue(response.message);
     }
     return clientId;
-  }
+  },
 );
 
 /* -------------------- Slice -------------------- */
 
 const customersSlice = createSlice({
-  name: 'customers',
+  name: "customers",
   initialState,
   reducers: {
     clearError: (state) => {
@@ -113,6 +109,12 @@ const customersSlice = createSlice({
     },
     setSelectedCustomer: (state, action: PayloadAction<Customer | null>) => {
       state.selectedCustomer = action.payload;
+    },
+    setCustomers: (state, action: PayloadAction<Customer[] | []>) => {
+      state.customers = action.payload;
+    },
+    setPagination: (state, action: PayloadAction<PaginationPayload>) => {
+      state.pagination = action.payload;
     },
   },
   extraReducers: (builder) => {
@@ -133,7 +135,7 @@ const customersSlice = createSlice({
             total: action.payload.total,
             totalPages: action.payload.totalPages,
           };
-        }
+        },
       )
       .addCase(fetchCustomers.rejected, (state, action) => {
         state.isLoading = false;
@@ -172,16 +174,14 @@ const customersSlice = createSlice({
     /* ---------- Update ---------- */
     builder.addCase(updateCustomer.fulfilled, (state, action) => {
       const index = state.customers.findIndex(
-        (c) => c.clientId === action.payload.clientId
+        (c) => c.clientId === action.payload.clientId,
       );
 
       if (index !== -1) {
         state.customers[index] = action.payload;
       }
 
-      if (
-        state.selectedCustomer?.clientId === action.payload.clientId
-      ) {
+      if (state.selectedCustomer?.clientId === action.payload.clientId) {
         state.selectedCustomer = action.payload;
       }
     });
@@ -189,7 +189,7 @@ const customersSlice = createSlice({
     /* ---------- Delete ---------- */
     builder.addCase(deleteCustomer.fulfilled, (state, action) => {
       state.customers = state.customers.filter(
-        (c) => c.clientId !== action.payload
+        (c) => c.clientId !== action.payload,
       );
       state.pagination.total -= 1;
 
@@ -202,7 +202,7 @@ const customersSlice = createSlice({
 
 /* -------------------- Exports -------------------- */
 
-export const { clearError, setSelectedCustomer } =
+export const { clearError, setSelectedCustomer, setCustomers, setPagination } =
   customersSlice.actions;
 
 export default customersSlice.reducer;

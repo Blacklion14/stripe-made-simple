@@ -1,17 +1,17 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAppDispatch, useAppSelector } from '@/store';
-import { fetchCustomers } from '@/store/slices/customersSlice';
-import { fetchProducts } from '@/store/slices/productsSlice';
-import { 
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAppDispatch, useAppSelector } from "@/store";
+import {
   fetchSubscriptions,
   cancelSubscription,
   pauseSubscription,
   resumeSubscription,
-} from '@/store/slices/subscriptionsSlice';
-import { SubscriptionSheet } from '@/components/subscriptions/SubscriptionSheet';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+  setSubscriptions,
+  setSubsPagination,
+} from "@/store/slices/subscriptionsSlice";
+import { SubscriptionSheet } from "@/components/subscriptions/SubscriptionSheet";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -19,14 +19,14 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from "@/components/ui/table";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,13 +36,13 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Search, 
-  MoreHorizontal, 
+} from "@/components/ui/alert-dialog";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import {
+  Search,
+  MoreHorizontal,
   Pause,
   Play,
   XCircle,
@@ -51,32 +51,62 @@ import {
   Eye,
   Plus,
   Pencil,
-} from 'lucide-react';
-import type { Subscription, SubscriptionStatus } from '@/types';
-import { format } from 'date-fns';
-import { toast } from 'sonner';
+} from "lucide-react";
+import type {
+  Subscription,
+  SubscriptionStatus,
+} from "@/types";
+import { format } from "date-fns";
+import { toast } from "sonner";
+import { useDispatch } from "react-redux";
 
 export default function SubscriptionsPage() {
   const dispatch = useAppDispatch();
+  const dispatchState = useDispatch();
   const navigate = useNavigate();
-  const { subscriptions, isLoading, pagination } = useAppSelector((state) => state.subscriptions);
-  
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
-  const [actionType, setActionType] = useState<'cancel' | 'pause' | 'resume' | null>(null);
+  const { subscriptions, isLoading, pagination } = useAppSelector(
+    (state) => state.subscriptions,
+  );
+  const [isSomethingChanged, setIsSomethingChanged] = useState(false);
+  const workspaceId = useAppSelector((state) => state.auth.workspaceId);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedSubscription, setSelectedSubscription] =
+    useState<Subscription | null>(null);
+  const [actionType, setActionType] = useState<
+    "cancel" | "pause" | "resume" | null
+  >(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [sheetMode, setSheetMode] = useState<'create' | 'edit'>('create');
-  const [editingSubscription, setEditingSubscription] = useState<Subscription | null>(null);
+  const [sheetMode, setSheetMode] = useState<"create" | "edit">("create");
+  const [editingSubscription, setEditingSubscription] =
+    useState<Subscription | null>(null);
 
   useEffect(() => {
-    dispatch(fetchSubscriptions({}));
-    dispatch(fetchCustomers({}));
-    dispatch(fetchProducts({}));
-  }, [dispatch]);
+    if (!workspaceId) return;
+    async function fetchData() {
+      const result = await dispatch(fetchSubscriptions({ workspaceId }));
+      if (fetchSubscriptions.fulfilled.match(result)) {
+        const subscriptions: Subscription[] = [];
+        const pagination = {
+          page: result.payload.page,
+          pageSize: result.payload.pageSize,
+          total: result.payload.total,
+          totalPages: result.payload.totalPages,
+        };
 
-  const formatCurrency = (amount: number, currency: string = 'USD') => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
+        result.payload.data.forEach((c: Subscription) => {
+          subscriptions.push(c);
+        });
+
+        dispatchState(setSubscriptions(subscriptions));
+        dispatchState(setSubsPagination(pagination));
+      }
+    }
+    fetchData();
+  }, [isSomethingChanged, workspaceId, dispatch]);
+
+  const formatCurrency = (amount: number, currency: string = "USD") => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
       currency,
       minimumFractionDigits: 0,
     }).format(amount);
@@ -84,18 +114,18 @@ export default function SubscriptionsPage() {
 
   const getStatusColor = (status: SubscriptionStatus) => {
     switch (status) {
-      case 'active':
-        return 'bg-success/10 text-success border-success/20';
-      case 'trialing':
-        return 'bg-primary/10 text-primary border-primary/20';
-      case 'past_due':
-        return 'bg-warning/10 text-warning border-warning/20';
-      case 'canceled':
-        return 'bg-destructive/10 text-destructive border-destructive/20';
-      case 'paused':
-        return 'bg-muted text-muted-foreground border-muted';
+      case "active":
+        return "bg-success/10 text-success border-success/20";
+      case "trialing":
+        return "bg-primary/10 text-primary border-primary/20";
+      case "past_due":
+        return "bg-warning/10 text-warning border-warning/20";
+      case "canceled":
+        return "bg-destructive/10 text-destructive border-destructive/20";
+      case "paused":
+        return "bg-muted text-muted-foreground border-muted";
       default:
-        return 'bg-muted text-muted-foreground border-muted';
+        return "bg-muted text-muted-foreground border-muted";
     }
   };
 
@@ -104,27 +134,30 @@ export default function SubscriptionsPage() {
     return `${count} ${interval}s`;
   };
 
-  const filteredSubscriptions = subscriptions.filter((sub) =>
-    sub.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (sub.productName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    sub.customerEmail.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredSubscriptions = subscriptions.filter(
+    (sub) =>
+      sub.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (sub.productName || "")
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase()) ||
+      sub.customerEmail.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const handleAction = async () => {
     if (!selectedSubscription || !actionType) return;
 
     switch (actionType) {
-      case 'cancel':
+      case "cancel":
         await dispatch(cancelSubscription(selectedSubscription.id));
-        toast.success('Subscription canceled');
+        toast.success("Subscription canceled");
         break;
-      case 'pause':
+      case "pause":
         await dispatch(pauseSubscription(selectedSubscription.id));
-        toast.success('Subscription paused');
+        toast.success("Subscription paused");
         break;
-      case 'resume':
+      case "resume":
         await dispatch(resumeSubscription(selectedSubscription.id));
-        toast.success('Subscription resumed');
+        toast.success("Subscription resumed");
         break;
     }
 
@@ -133,81 +166,103 @@ export default function SubscriptionsPage() {
   };
 
   const handleCreate = () => {
-    setSheetMode('create');
+    setSheetMode("create");
     setEditingSubscription(null);
     setIsSheetOpen(true);
   };
 
   const handleEdit = (subscription: Subscription) => {
-    setSheetMode('edit');
+    setSheetMode("edit");
     setEditingSubscription(subscription);
     setIsSheetOpen(true);
   };
 
-  const openAction = (subscription: Subscription, action: 'cancel' | 'pause' | 'resume') => {
+  const openAction = (
+    subscription: Subscription,
+    action: "cancel" | "pause" | "resume",
+  ) => {
     setSelectedSubscription(subscription);
     setActionType(action);
   };
 
   const getActionDialogContent = () => {
     switch (actionType) {
-      case 'cancel':
+      case "cancel":
         return {
-          title: 'Cancel Subscription',
+          title: "Cancel Subscription",
           description: `Are you sure you want to cancel the subscription for "${selectedSubscription?.customerName}"?`,
-          action: 'Cancel Subscription',
-          variant: 'destructive' as const,
+          action: "Cancel Subscription",
+          variant: "destructive" as const,
         };
-      case 'pause':
+      case "pause":
         return {
-          title: 'Pause Subscription',
+          title: "Pause Subscription",
           description: `Are you sure you want to pause the subscription for "${selectedSubscription?.customerName}"?`,
-          action: 'Pause Subscription',
-          variant: 'default' as const,
+          action: "Pause Subscription",
+          variant: "default" as const,
         };
-      case 'resume':
+      case "resume":
         return {
-          title: 'Resume Subscription',
+          title: "Resume Subscription",
           description: `Are you sure you want to resume the subscription for "${selectedSubscription?.customerName}"?`,
-          action: 'Resume Subscription',
-          variant: 'default' as const,
+          action: "Resume Subscription",
+          variant: "default" as const,
         };
       default:
-        return { title: '', description: '', action: '', variant: 'default' as const };
+        return {
+          title: "",
+          description: "",
+          action: "",
+          variant: "default" as const,
+        };
     }
   };
 
   const dialogContent = getActionDialogContent();
 
-  const MobileSubscriptionCard = ({ subscription }: { subscription: Subscription }) => (
-    <div 
+  const MobileSubscriptionCard = ({
+    subscription,
+  }: {
+    subscription: Subscription;
+  }) => (
+    <div
       className="p-4 border-b last:border-b-0 cursor-pointer hover:bg-muted/50 transition-colors"
       onClick={() => navigate(`/subscriptions/${subscription.id}`)}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-medium flex-shrink-0">
-            {subscription.customerName.split(' ').map(n => n[0]).join('').slice(0, 2)}
+            {subscription.customerName
+              .split(" ")
+              .map((n) => n[0])
+              .join("")
+              .slice(0, 2)}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="font-medium text-foreground truncate">{subscription.customerName}</p>
+            <p className="font-medium text-foreground truncate">
+              {subscription.customerName}
+            </p>
             <p className="text-sm text-muted-foreground truncate">
               {subscription.items?.length || 1} item(s)
             </p>
           </div>
         </div>
-        <Badge variant="outline" className={`${getStatusColor(subscription.status)} flex-shrink-0`}>
-          {subscription.status.replace('_', ' ')}
+        <Badge
+          variant="outline"
+          className={`${getStatusColor(subscription.status)} flex-shrink-0`}
+        >
+          {subscription.status.replace("_", " ")}
         </Badge>
       </div>
       <div className="mt-3 flex items-center justify-between text-sm">
         <span className="font-medium">
-          {formatCurrency(subscription.amount, subscription.currency)}/{getIntervalLabel(subscription.intervalCount, subscription.interval)}
+          {formatCurrency(subscription.amount, subscription.currency)}/
+          {getIntervalLabel(subscription.intervalCount, subscription.interval)}
         </span>
         <div className="flex items-center gap-1 text-muted-foreground">
           <Calendar className="h-3 w-3" />
           <span className="text-xs">
-            {format(new Date(subscription.currentPeriodEnd), 'MMM d')}
+            {format(new Date(subscription.currentPeriodEnd), "MMM d")}
           </span>
         </div>
       </div>
@@ -218,8 +273,12 @@ export default function SubscriptionsPage() {
     <div className="space-y-4 sm:space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Subscriptions</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">Manage recurring billing for your customers</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">
+            Subscriptions
+          </h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
+            Manage recurring billing for your customers
+          </p>
         </div>
         <Button onClick={handleCreate} className="w-full sm:w-auto">
           <Plus className="mr-2 h-4 w-4" />
@@ -240,8 +299,12 @@ export default function SubscriptionsPage() {
               />
             </div>
             <div className="flex items-center gap-2 flex-wrap">
-              <Badge variant="outline" className="bg-success/10 text-success border-success/20">
-                {subscriptions.filter(s => s.status === 'active').length} active
+              <Badge
+                variant="outline"
+                className="bg-success/10 text-success border-success/20"
+              >
+                {subscriptions.filter((s) => s.status === "active").length}{" "}
+                active
               </Badge>
               <Badge variant="secondary">{pagination.total} total</Badge>
             </div>
@@ -264,7 +327,10 @@ export default function SubscriptionsPage() {
             <>
               <div className="sm:hidden">
                 {filteredSubscriptions.map((subscription) => (
-                  <MobileSubscriptionCard key={subscription.id} subscription={subscription} />
+                  <MobileSubscriptionCard
+                    key={subscription.id}
+                    subscription={subscription}
+                  />
                 ))}
               </div>
 
@@ -276,25 +342,37 @@ export default function SubscriptionsPage() {
                       <TableHead>Products</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Amount</TableHead>
-                      <TableHead className="hidden lg:table-cell">Billing</TableHead>
+                      <TableHead className="hidden lg:table-cell">
+                        Billing
+                      </TableHead>
                       <TableHead className="w-12"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredSubscriptions.map((subscription) => (
-                      <TableRow 
-                        key={subscription.id} 
+                      <TableRow
+                        key={subscription.id}
                         className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => navigate(`/subscriptions/${subscription.id}`)}
+                        onClick={() =>
+                          navigate(`/subscriptions/${subscription.id}`)
+                        }
                       >
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-medium flex-shrink-0">
-                              {subscription.customerName.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                              {subscription.customerName
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")
+                                .slice(0, 2)}
                             </div>
                             <div className="min-w-0">
-                              <p className="font-medium text-foreground truncate">{subscription.customerName}</p>
-                              <p className="text-sm text-muted-foreground truncate max-w-[200px]">{subscription.customerEmail}</p>
+                              <p className="font-medium text-foreground truncate">
+                                {subscription.customerName}
+                              </p>
+                              <p className="text-sm text-muted-foreground truncate max-w-[200px]">
+                                {subscription.customerEmail}
+                              </p>
                             </div>
                           </div>
                         </TableCell>
@@ -307,18 +385,28 @@ export default function SubscriptionsPage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={getStatusColor(subscription.status)}>
-                            {subscription.status.replace('_', ' ')}
+                          <Badge
+                            variant="outline"
+                            className={getStatusColor(subscription.status)}
+                          >
+                            {subscription.status.replace("_", " ")}
                           </Badge>
                         </TableCell>
                         <TableCell>
                           <span className="font-medium whitespace-nowrap">
-                            {formatCurrency(subscription.amount, subscription.currency)}
+                            {formatCurrency(
+                              subscription.amount,
+                              subscription.currency,
+                            )}
                           </span>
                         </TableCell>
                         <TableCell className="hidden lg:table-cell">
                           <span className="text-sm text-muted-foreground">
-                            Every {getIntervalLabel(subscription.intervalCount, subscription.interval)}
+                            Every{" "}
+                            {getIntervalLabel(
+                              subscription.intervalCount,
+                              subscription.interval,
+                            )}
                           </span>
                         </TableCell>
                         <TableCell onClick={(e) => e.stopPropagation()}>
@@ -329,37 +417,53 @@ export default function SubscriptionsPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => navigate(`/subscriptions/${subscription.id}`)}>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  navigate(`/subscriptions/${subscription.id}`)
+                                }
+                              >
                                 <Eye className="mr-2 h-4 w-4" />
                                 View Details
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleEdit(subscription)}>
+                              <DropdownMenuItem
+                                onClick={() => handleEdit(subscription)}
+                              >
                                 <Pencil className="mr-2 h-4 w-4" />
                                 Edit
                               </DropdownMenuItem>
-                              {subscription.status === 'active' && (
+                              {subscription.status === "active" && (
                                 <>
                                   <DropdownMenuSeparator />
-                                  <DropdownMenuItem onClick={() => openAction(subscription, 'pause')}>
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      openAction(subscription, "pause")
+                                    }
+                                  >
                                     <Pause className="mr-2 h-4 w-4" />
                                     Pause
                                   </DropdownMenuItem>
                                 </>
                               )}
-                              {subscription.status === 'paused' && (
+                              {subscription.status === "paused" && (
                                 <>
                                   <DropdownMenuSeparator />
-                                  <DropdownMenuItem onClick={() => openAction(subscription, 'resume')}>
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      openAction(subscription, "resume")
+                                    }
+                                  >
                                     <Play className="mr-2 h-4 w-4" />
                                     Resume
                                   </DropdownMenuItem>
                                 </>
                               )}
-                              {subscription.status !== 'canceled' && (
+                              {subscription.status !== "canceled" && (
                                 <>
                                   <DropdownMenuSeparator />
-                                  <DropdownMenuItem 
-                                    onClick={() => openAction(subscription, 'cancel')}
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      openAction(subscription, "cancel")
+                                    }
                                     className="text-destructive focus:text-destructive"
                                   >
                                     <XCircle className="mr-2 h-4 w-4" />
@@ -393,13 +497,17 @@ export default function SubscriptionsPage() {
         <AlertDialogContent className="max-w-[90vw] sm:max-w-lg">
           <AlertDialogHeader>
             <AlertDialogTitle>{dialogContent.title}</AlertDialogTitle>
-            <AlertDialogDescription>{dialogContent.description}</AlertDialogDescription>
+            <AlertDialogDescription>
+              {dialogContent.description}
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-            <AlertDialogCancel className="w-full sm:w-auto">Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogCancel className="w-full sm:w-auto">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
               onClick={handleAction}
-              className={`w-full sm:w-auto ${dialogContent.variant === 'destructive' ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}`}
+              className={`w-full sm:w-auto ${dialogContent.variant === "destructive" ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}`}
             >
               {dialogContent.action}
             </AlertDialogAction>

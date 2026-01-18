@@ -10,6 +10,7 @@ export interface User {
 
 export interface AuthState {
   user: User | null;
+  workspaceId: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
@@ -22,6 +23,7 @@ export interface Customer {
   workspaceId: string;
   email: string;
   contactNumber?: string;
+  countryCode?: number | null;
   companyName?: string;
   billingAddress?: string;
   taxId?: string;
@@ -30,11 +32,19 @@ export interface Customer {
   subscriptions: number;
 }
 
+export interface PaginationPayload {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
 export interface CreateCustomerRequest {
   workspaceId: string;
   name: string;
   email: string;
   contactNumber?: string;
+  countryCode?: number | null;
   billingAddress?: string;
   companyName?: string;
   taxId?: string;
@@ -42,10 +52,11 @@ export interface CreateCustomerRequest {
 
 // Product Types
 export interface Product {
+  workspaceId: string;
   productId: string;
   name: string;
   description: string;
-  price: number;
+  price: any;
   currency: string;
   active: boolean;
   createdAt: string;
@@ -53,8 +64,8 @@ export interface Product {
   image?: string;
 }
 
-
 export interface CreateProductRequest {
+  workspaceId: string;
   name: string;
   description: string;
   price: number;
@@ -83,8 +94,13 @@ export interface Tax {
 }
 
 // Subscription Types
-export type SubscriptionStatus = 'active' | 'canceled' | 'past_due' | 'trialing' | 'paused';
-export type SubscriptionInterval = 'day' | 'week' | 'month' | 'year';
+export type SubscriptionStatus =
+  | "active"
+  | "canceled"
+  | "past_due"
+  | "trialing"
+  | "paused";
+export type SubscriptionInterval = "day" | "week" | "month" | "year";
 
 export interface SubscriptionItem {
   id: string;
@@ -126,7 +142,12 @@ export interface Subscription {
 }
 
 // Invoice Types
-export type InvoiceStatus = 'draft' | 'open' | 'paid' | 'void' | 'uncollectible';
+export type InvoiceStatus =
+  | "draft"
+  | "open"
+  | "paid"
+  | "void"
+  | "uncollectible";
 
 export interface Invoice {
   id: string;
